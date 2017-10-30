@@ -63,7 +63,9 @@ $this->breadcrumbs = [
                 <?php foreach ($positions as $position): ?>
                     <div class="cart-list__item">
                         <?php $positionId = $position->getId(); ?>
-                        <?php $productUrl = ProductHelper::getUrl($position->getProductModel()); ?>
+
+                        <?php $productUrl = ProductHelper::getUrl($position); ?>
+
                         <?= CHtml::hiddenField('OrderProduct['.$positionId.'][product_id]', $position->id); ?>
                         <input type="hidden" class="position-id" value="<?= $positionId; ?>"/>
 
