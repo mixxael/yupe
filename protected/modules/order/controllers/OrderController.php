@@ -41,6 +41,8 @@ class OrderController extends \yupe\components\controllers\FrontController
 
             if ($model->store($order, $products, Yii::app()->getUser()->getId(), (int)Yii::app()->getModule('order')->defaultStatus)) {
 
+                Yii::app()->cart->clear();
+
                 if (!empty($coupons)) {
                     $model->applyCoupons($coupons);
                 }
@@ -49,16 +51,6 @@ class OrderController extends \yupe\components\controllers\FrontController
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('OrderModule.order', 'The order created')
                 );
-
-                if (Yii::app()->hasModule('cart')) {
-                    Yii::app()->getModule('cart')->clearCart();
-                }
-
-                //отправить уведомления
-                Yii::app()->orderNotifyService->sendOrderCreatedAdminNotify($model);
-
-                Yii::app()->orderNotifyService->sendOrderCreatedUserNotify($model);
-
 
                 if (Yii::app()->getModule('order')->showOrder) {
                     $this->redirect(['/order/order/view', 'url' => $model->url]);
@@ -74,7 +66,7 @@ class OrderController extends \yupe\components\controllers\FrontController
             }
         }
 
-        $this->redirect(Yii::app()->getUser()->getReturnUrl($_SERVER['HTTP_REFERER']));
+        $this->redirect(Yii::app()->getUser()->getReturnUrl());
     }
 
     /**

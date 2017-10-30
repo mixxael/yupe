@@ -11,6 +11,7 @@ return [
     ],
     'import' => [
         'application.modules.order.models.*',
+        'application.modules.order.helpers.*',
     ],
     'component' => [
         'eventManager' => [
@@ -19,6 +20,9 @@ return [
                 'order.pay.success' => [
                     ['PayOrderListener', 'onSuccessPay']
                 ],
+                'order.create.success' => [
+                    ['OrderListener', 'onCreate']
+                ]
             ]
         ],
         'orderNotifyService' => [

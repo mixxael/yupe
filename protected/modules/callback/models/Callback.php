@@ -9,22 +9,40 @@
  * @property string $time
  * @property string $comment
  * @property integer $status
+ * @property string $create_time
+ * @property string $url
  */
 class Callback extends \yupe\models\YModel
 {
+    /**
+     *
+     */
     const STATUS_NEW = 0;
+    /**
+     *
+     */
     const STATUS_PROCESSED = 1;
 
+    /**
+     * @return string
+     */
     public function tableName()
     {
         return '{{callback}}';
     }
 
+    /**
+     * @param null|string $className
+     * @return $this
+     */
     public static function model($className = __CLASS__)
     {
         return parent::model($className);
     }
 
+    /**
+     * @return array
+     */
     public function rules()
     {
         return [
@@ -46,10 +64,14 @@ class Callback extends \yupe\models\YModel
             ],
             ['comment', 'length', 'max' => 255],
             ['status', 'numerical', 'integerOnly' => true],
-            ['id, name, phone, time, comment, status', 'safe', 'on' => 'search'],
+            ['url', 'url'],
+            ['id, name, phone, time, comment, status, create_time, url', 'safe', 'on' => 'search'],
         ];
     }
 
+    /**
+     * @return array
+     */
     public function attributeLabels()
     {
         return [
@@ -58,9 +80,14 @@ class Callback extends \yupe\models\YModel
             'time' => Yii::t('CallbackModule.callback', 'Time'),
             'comment' => Yii::t('CallbackModule.callback', 'Comment'),
             'status' => Yii::t('CallbackModule.callback', 'Status'),
+            'create_time' => Yii::t('CallbackModule.callback', 'Created At'),
+            'url' => Yii::t('CallbackModule.callback', 'Url'),
         ];
     }
 
+    /**
+     * @return array
+     */
     public function scopes()
     {
         return [
@@ -75,12 +102,34 @@ class Callback extends \yupe\models\YModel
         ];
     }
 
+    /**
+     * @return array
+     */
+    public function behaviors()
+    {
+        return [
+            'CTimestampBehavior' => [
+                'class' => 'zii.behaviors.CTimestampBehavior',
+                'createAttribute' => 'create_time',
+                'updateAttribute' => null,
+            ],
+        ];
+    }
+
+    /**
+     * @return CActiveDataProvider
+     */
     public function search()
     {
         $criteria = new CDbCriteria;
         $criteria->compare('id', $this->id);
         $criteria->compare('comment', $this->comment, true);
+        $criteria->compare('name', $this->name, true);
+        $criteria->compare('phone', $this->phone, true);
+        $criteria->compare('time', $this->time, true);
         $criteria->compare('status', $this->status);
+        $criteria->compare('create_time', $this->create_time, true);
+        $criteria->compare('url', $this->url, true);
 
         return new CActiveDataProvider(
             $this, [
@@ -90,6 +139,9 @@ class Callback extends \yupe\models\YModel
         );
     }
 
+    /**
+     * @return array
+     */
     public function getStatusList()
     {
         return [
@@ -98,6 +150,9 @@ class Callback extends \yupe\models\YModel
         ];
     }
 
+    /**
+     * @return array
+     */
     public function getStatusLabelList()
     {
         return [

@@ -13,7 +13,7 @@
  * @property string $unit
  * @property integer $sort
  * @property integer $is_filter
- *
+ * @property string $description
  * @property-read AttributeOption[] $options
  * @property-read AttributeGroup $group
  *
@@ -40,14 +40,16 @@ class Attribute extends \yupe\models\YModel
      *
      */
     const TYPE_CHECKBOX_LIST = 4;
-    /**
-     *
-     */
-    const TYPE_IMAGE = 5;
+
     /**
      *
      */
     const TYPE_NUMBER = 6;
+
+    /**
+     *
+     */
+    const TYPE_FILE = 7;
 
     /**
      * @var
@@ -77,7 +79,8 @@ class Attribute extends \yupe\models\YModel
     public function rules()
     {
         return [
-            ['name, title', 'filter', 'filter' => 'trim'],
+            ['name, title, description', 'filter', 'filter' => 'trim'],
+            ['name, title, description', 'filter', 'filter' => 'strip_tags'],
             ['name, type, title', 'required'],
             ['name', 'unique'],
             [
@@ -104,6 +107,7 @@ class Attribute extends \yupe\models\YModel
             'options' => [self::HAS_MANY, 'AttributeOption', 'attribute_id', 'order' => 'options.position ASC'],
             'group' => [self::BELONGS_TO, 'AttributeGroup', 'group_id'],
             'value' => [self::BELONGS_TO, 'AttributeValue', 'attribute_id'],
+            'types' => [self::HAS_MANY, 'TypeAttribute', 'attribute_id'],
         ];
     }
 
@@ -123,6 +127,7 @@ class Attribute extends \yupe\models\YModel
             'unit' => Yii::t('StoreModule.store', 'Unit'),
             'sort' => Yii::t('StoreModule.store', 'Sort'),
             'is_filter' => Yii::t('StoreModule.store', 'Filter'),
+            'description' => Yii::t('StoreModule.store', 'Description'),
         ];
     }
 
@@ -156,9 +161,10 @@ class Attribute extends \yupe\models\YModel
         $criteria->compare('type', $this->type);
         $criteria->compare('group_id', $this->group_id);
         $criteria->compare('is_filter', $this->is_filter);
+        $criteria->compare('required', $this->required);
 
         $sort = new CSort;
-        $sort->defaultOrder = 't.sort DESC';
+        $sort->defaultOrder = 't.sort ASC';
         $sort->attributes = [
             '*',
             'title' => [
@@ -178,16 +184,16 @@ class Attribute extends \yupe\models\YModel
     /**
      * @return array
      */
-    public static function getTypesList()
+    public function getTypesList()
     {
         return [
             self::TYPE_SHORT_TEXT => Yii::t('StoreModule.store', 'Short text (up to 250 characters)'),
             self::TYPE_TEXT => Yii::t('StoreModule.store', 'Text'),
             self::TYPE_DROPDOWN => Yii::t('StoreModule.store', 'Dropdown list'),
-            //self::TYPE_CHECKBOX_LIST => Yii::t('StoreModule.store', 'Список чекбоксов'),
             self::TYPE_CHECKBOX => Yii::t('StoreModule.store', 'Checkbox'),
-            //self::TYPE_IMAGE => Yii::t('StoreModule.store', 'Изображение'),
-            self::TYPE_NUMBER => Yii::t('StoreModule.store', 'Число'),
+            self::TYPE_NUMBER => Yii::t('StoreModule.store', 'Number'),
+            self::TYPE_FILE => Yii::t('StoreModule.store', 'File'),
+            self::TYPE_CHECKBOX_LIST => Yii::t('StoreModule.store', 'Checkbox list'),
         ];
     }
 
@@ -195,20 +201,13 @@ class Attribute extends \yupe\models\YModel
      * @param $type
      * @return mixed
      */
-    public static function getTypeTitle($type)
+    public function getTypeTitle($type)
     {
-        $list = self::getTypesList();
+        $list = $this->getTypesList();
 
-        return $list[$type];
+        return isset($list[$type]) ? $list[$type] : $type;
     }
 
-    /**
-     * @return array
-     */
-    public static function getTypesWithOptions()
-    {
-        return [self::TYPE_DROPDOWN, self::TYPE_CHECKBOX_LIST];
-    }
 
     /**
      * @param $name
@@ -228,57 +227,6 @@ class Attribute extends \yupe\models\YModel
     }
 
     /**
-     * @throws CDbException
-     */
-    public function afterSave()
-    {
-        if ($this->type == Attribute::TYPE_DROPDOWN) {
-            // список новых значений опций атрибута, не пустые, без лишних пробелов по бокам, уникальные
-            $newOptions = array_unique(
-                array_filter(
-                    array_map('trim', explode("\n", $this->rawOptions))
-                )
-            );
-
-            // в нижнем регистре, чтобы не надо было переназначать привязку атрибутов в товарах
-            $newOptionsLower = array_map(
-                function ($x) {
-                    return mb_strtolower($x, 'utf-8');
-                },
-                $newOptions
-            );
-
-            $oldOptionsLower = []; // список имен опций, которые уже сохранены
-
-            // удалим те из них, которых нет, в остальных обновим значение и позицию
-            foreach ((array)$this->options as $option) {
-                /* @var $option AttributeOption */
-                $position = array_search(mb_strtolower($option->value), $newOptionsLower);
-                // опция была удалена
-                if ($position === false) {
-                    $option->delete();
-                } else {
-                    $oldOptionsLower[] = mb_strtolower($option->value, 'utf-8');
-                    $option->value = $newOptions[$position]; // если поменяли регистр опции
-                    $option->position = $position;
-                    $option->save();
-                }
-            }
-
-            // добавим оставшиеся
-            foreach (array_diff($newOptionsLower, $oldOptionsLower) as $position => $value) {
-                $option = new AttributeOption();
-                $option->attribute_id = $this->id;
-                $option->value = $newOptions[$position];
-                $option->position = $position;
-                $option->save();
-            }
-        }
-
-        parent::afterSave();
-    }
-
-    /**
      * @param $type
      * @return bool
      */
@@ -293,20 +241,6 @@ class Attribute extends \yupe\models\YModel
     public function isRequired()
     {
         return $this->required;
-    }
-
-
-    /**
-     * @return string Список опций, разделенных переносом строки
-     */
-    public function getRawOptions()
-    {
-        $tmp = '';
-        foreach ((array)$this->options as $option) {
-            $tmp .= $option->value."\n";
-        }
-
-        return $tmp;
     }
 
     /**
@@ -365,6 +299,110 @@ class Attribute extends \yupe\models\YModel
                 'class' => 'yupe\components\behaviors\SortableBehavior',
                 'attributeName' => 'sort',
             ],
+        ];
+    }
+
+
+    /**
+     * @param array $types
+     * @return bool
+     * @throws CDbException
+     */
+    public function setTypes(array $types)
+    {
+        $transaction = Yii::app()->getDb()->beginTransaction();
+
+        try {
+            TypeAttribute::model()->deleteAll('attribute_id = :attribute', [
+                ':attribute' => $this->id,
+            ]);
+
+            foreach ($types as $type) {
+                $attribute = new TypeAttribute();
+                $attribute->setAttributes([
+                    'attribute_id' => $this->id,
+                    'type_id' => (int)$type,
+                ]);
+                $attribute->save();
+            }
+
+            $transaction->commit();
+
+            return true;
+        } catch (Exception $e) {
+            $transaction->rollback();
+
+            return false;
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function getTypes()
+    {
+        $types = [];
+
+        foreach ($this->types as $type) {
+            $types[$type->type_id] = true;
+        }
+
+        return $types;
+    }
+
+    /**
+     * @param array $attributes
+     * @return bool
+     * @throws CDbException
+     */
+    public function setMultipleValuesAttributes(array $attributes)
+    {
+        if (!$this->isMultipleValues()) {
+            return true;
+        }
+
+        $transaction = Yii::app()->getDb()->beginTransaction();
+
+        try {
+
+            foreach ($attributes as $attribute) {
+                $model = new AttributeOption();
+                $model->setAttributes([
+                    'attribute_id' => $this->id,
+                    'value' => trim($attribute),
+                ]);
+
+                if (false === $model->save()) {
+                    throw new CDbException('Error save attribute...');
+                }
+            }
+
+            $transaction->commit();
+
+            return true;
+        } catch (Exception $e) {
+            $transaction->rollback();
+
+            return false;
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public function isMultipleValues()
+    {
+        return $this->type == self::TYPE_DROPDOWN || $this->type == self::TYPE_CHECKBOX_LIST;
+    }
+
+    /**
+     * @return array
+     */
+    public function getYesNoList()
+    {
+        return [
+            Yii::t('StoreModule.store', 'No'),
+            Yii::t('StoreModule.store', 'Yes'),
         ];
     }
 }

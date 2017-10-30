@@ -7,7 +7,7 @@
  * @link      http://yupe.ru
  * @copyright 2009-2013 amyLabs && Yupe! team
  * @package   yupe.modules.category.controllers
- * @version   0.6
+ * @version   1.1
  *
  */
 class CategoryBackendController extends yupe\components\controllers\BackController
@@ -29,8 +29,8 @@ class CategoryBackendController extends yupe\components\controllers\BackControll
     {
         return [
             'inline' => [
-                'class'           => 'yupe\components\actions\YInLineEditAction',
-                'model'           => 'Category',
+                'class' => 'yupe\components\actions\YInLineEditAction',
+                'model' => 'Category',
                 'validAttributes' => ['name', 'description', 'slug', 'status']
             ]
         ];
@@ -166,16 +166,16 @@ class CategoryBackendController extends yupe\components\controllers\BackControll
             'slug = :slug AND id != :id',
             [
                 ':slug' => $model->slug,
-                ':id'    => $model->id
+                ':id' => $model->id
             ]
         );
 
         $this->render(
             'update',
             [
-                'model'      => $model,
+                'model' => $model,
                 'langModels' => CHtml::listData($langModels, 'lang', 'id'),
-                'languages'  => $this->yupe->getLanguagesList()
+                'languages' => $this->yupe->getLanguagesList()
             ]
         );
     }
@@ -227,13 +227,17 @@ class CategoryBackendController extends yupe\components\controllers\BackControll
      *
      * @return void
      */
-    public function actionIndex()
+    public function actionIndex($module = null, $parent = null)
     {
         $model = new Category('search');
         $model->unsetAttributes(); // clear any default values
 
         if (isset($_GET['Category'])) {
             $model->attributes = $_GET['Category'];
+        }
+
+        if (null !== $module && null !== $parent) {
+            $model->parent_id = $parent;
         }
 
         $this->render('index', ['model' => $model]);
@@ -243,7 +247,7 @@ class CategoryBackendController extends yupe\components\controllers\BackControll
      * Возвращает модель по указанному идентификатору
      * Если модель не будет найдена - возникнет HTTP-исключение.
      *
-     * @param integer идентификатор нужной модели
+     * @param integer $id идентификатор нужной модели
      *
      * @return Category $model
      *

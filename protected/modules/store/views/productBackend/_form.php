@@ -46,6 +46,9 @@ $form = $this->beginWidget(
     <div class="tab-pane active" id="common">
         <div class="row">
             <div class="col-sm-3">
+                <?= $form->textFieldGroup($model, 'sku'); ?>
+            </div>
+            <div class="col-sm-3">
                 <?= $form->dropDownListGroup(
                     $model,
                     'status',
@@ -162,9 +165,10 @@ $form = $this->beginWidget(
 
         <div class='row'>
             <div class="col-sm-7">
-                <div class="preview-image-wrapper<?= !$model->isNewRecord && $model->image ? '' : ' hidden' ?>">
+                <div class="preview-image-wrapper<?= !$model->getIsNewRecord() && $model->image ? '' : ' hidden' ?>">
                     <div class="btn-group image-settings">
-                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="collapse" data-target="#image-settings"><span class="fa fa-gear"></span></button>
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="collapse"
+                                data-target="#image-settings"><span class="fa fa-gear"></span></button>
                         <div id="image-settings" class="dropdown-menu">
                             <div class="container-fluid">
                                 <div class="row">
@@ -260,13 +264,34 @@ $form = $this->beginWidget(
                 <?= $form->error($model, 'data'); ?>
             </div>
         </div>
+
+        <?php $collapse = $this->beginWidget('bootstrap.widgets.TbCollapse'); ?>
+        <div class="panel-group" id="template-options">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <div class="panel-title">
+                        <a data-toggle="collapse" data-parent="#template-options" href="#collapse-template">
+                            <?= Yii::t('StoreModule.store', 'Templates settings'); ?>
+                        </a>
+                    </div>
+                </div>
+                <div id="collapse-template" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-7">
+                                <?= $form->textFieldGroup($model, 'view'); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php $this->endWidget(); ?>
+
     </div>
 
     <div class="tab-pane" id="stock">
         <div class="row">
-            <div class="col-sm-3">
-                <?= $form->textFieldGroup($model, 'sku'); ?>
-            </div>
             <div class="col-sm-3">
                 <?= $form->dropDownListGroup(
                     $model,
@@ -277,6 +302,9 @@ $form = $this->beginWidget(
                         ],
                     ]
                 ); ?>
+            </div>
+            <div class="col-sm-2">
+                <?= $form->numberFieldGroup($model, 'quantity'); ?>
             </div>
         </div>
 
@@ -295,10 +323,6 @@ $form = $this->beginWidget(
         <div class="row">
             <div class="col-sm-2">
                 <?= $form->textFieldGroup($model, 'weight'); ?>
-            </div>
-
-            <div class="col-sm-2">
-                <?= $form->numberFieldGroup($model, 'quantity'); ?>
             </div>
         </div>
 
@@ -329,13 +353,6 @@ $form = $this->beginWidget(
                                 <label for=""><?= Yii::t("StoreModule.store", "File"); ?></label>
                                 <input type="file" class="image-file"/>
                             </div>
-                            <div class="col-xs-6 col-sm-3">
-                                <label for=""><?= Yii::t("StoreModule.store", "Group"); ?></label>
-                                <?= CHtml::dropDownList('', null, ImageGroupHelper::all(), [
-                                    'empty' => Yii::t('StoreModule.store', '--choose--'),
-                                    'class' => 'form-control image-group image-group-dropdown'
-                                ]) ?>
-                            </div>
                             <div class="col-xs-5 col-sm-3">
                                 <label for=""><?= Yii::t("StoreModule.store", "Image title"); ?></label>
                                 <input type="text" class="image-title form-control"/>
@@ -343,6 +360,13 @@ $form = $this->beginWidget(
                             <div class="col-xs-5 col-sm-3">
                                 <label for=""><?= Yii::t("StoreModule.store", "Image alt"); ?></label>
                                 <input type="text" class="image-alt form-control"/>
+                            </div>
+                            <div class="col-xs-6 col-sm-3">
+                                <label for=""><?= Yii::t("StoreModule.store", "Group"); ?></label>
+                                <?= CHtml::dropDownList('', null, ImageGroupHelper::all(), [
+                                    'empty' => Yii::t('StoreModule.store', '--choose--'),
+                                    'class' => 'form-control image-group image-group-dropdown',
+                                ]) ?>
                             </div>
                             <div class="col-xs-2 col-sm-1" style="padding-top: 24px">
                                 <button class="button-delete-image btn btn-default" type="button"><i
@@ -355,42 +379,48 @@ $form = $this->beginWidget(
                 <?php if (!$model->getIsNewRecord() && $model->images): ?>
                     <table class="table table-hover">
                         <thead>
-                            <tr>
-                                <th></th>
-                                <th><?= Yii::t("StoreModule.store", "Image title"); ?></th>
-                                <th><?= Yii::t("StoreModule.store", "Image alt"); ?></th>
-                                <th><?= Yii::t("StoreModule.store", "Group"); ?></th>
-                                <th></th>
-                            </tr>
+                        <tr>
+                            <th></th>
+                            <th><?= Yii::t("StoreModule.store", "Image title"); ?></th>
+                            <th><?= Yii::t("StoreModule.store", "Image alt"); ?></th>
+                            <th><?= Yii::t("StoreModule.store", "Group"); ?></th>
+                            <th></th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($model->images as $image): ?>
-                                <tr>
-                                    <td>
-                                        <img src="<?= $image->getImageUrl(100, 100); ?>" alt="" class="img-responsive"/>
-                                    </td>
-                                    <td>
-                                        <?= CHtml::textField('ProductImage[' . $image->id . '][title]', $image->title, ['class' => 'form-control']) ?>
-                                    </td>
-                                    <td>
-                                        <?= CHtml::textField('ProductImage[' . $image->id . '][alt]', $image->alt, ['class' => 'form-control']) ?>
-                                    </td>
-                                    <td>
-                                        <?= CHtml::dropDownList(
-                                            'ProductImage[' . $image->id . '][group_id]',
-                                            $image->group_id,
-                                            ImageGroupHelper::all(),
-                                            ['empty' => Yii::t('StoreModule.store', '--choose--'), 'class' => 'form-control image-group-dropdown']
-                                        ) ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <a data-id="<?= $image->id; ?>" href="<?= Yii::app()->createUrl(
-                                            '/store/productBackend/deleteImage',
-                                            ['id' => $image->id]
-                                        ); ?>" class="btn btn-default product-delete-image"><i class="fa fa-fw fa-trash-o"></i></a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                        <?php foreach ($model->images as $image): ?>
+                            <tr>
+                                <td>
+                                    <img src="<?= $image->getImageUrl(100, 100); ?>" alt="" class="img-responsive"/>
+                                </td>
+                                <td>
+                                    <?= CHtml::textField('ProductImage['.$image->id.'][title]', $image->title,
+                                        ['class' => 'form-control']) ?>
+                                </td>
+                                <td>
+                                    <?= CHtml::textField('ProductImage['.$image->id.'][alt]', $image->alt,
+                                        ['class' => 'form-control']) ?>
+                                </td>
+                                <td>
+                                    <?= CHtml::dropDownList(
+                                        'ProductImage['.$image->id.'][group_id]',
+                                        $image->group_id,
+                                        ImageGroupHelper::all(),
+                                        [
+                                            'empty' => Yii::t('StoreModule.store', '--choose--'),
+                                            'class' => 'form-control image-group-dropdown',
+                                        ]
+                                    ) ?>
+                                </td>
+                                <td class="text-center">
+                                    <a data-id="<?= $image->id; ?>" href="<?= Yii::app()->createUrl(
+                                        '/store/productBackend/deleteImage',
+                                        ['id' => $image->id]
+                                    ); ?>" class="btn btn-default product-delete-image"><i
+                                            class="fa fa-fw fa-trash-o"></i></a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
                 <?php endif; ?>
@@ -406,7 +436,7 @@ $form = $this->beginWidget(
                     'type_id',
                     [
                         'widgetOptions' => [
-                            'data' => Type::model()->getFormattedList(),
+                            'data' => CHtml::listData(Type::model()->findAll(), 'id', 'name'),
                             'htmlOptions' => [
                                 'empty' => '---',
                                 'encode' => false,
@@ -504,7 +534,7 @@ $form = $this->beginWidget(
     </div>
 </div>
 
-<br/>
+<br/><br/>
 
 <?php $this->widget(
     'bootstrap.widgets.TbButton',

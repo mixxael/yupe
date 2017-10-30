@@ -13,19 +13,21 @@
  */
 class LoginAction extends CAction
 {
+
     /**
      *
      */
     public function run()
     {
-        /**
-         * Если было совершено больше 3х попыток входа
-         * в систему, используем сценарий с капчей:
-         **/
+        $module = Yii::app()->getModule('user');
+
+        if (false === Yii::app()->getUser()->getIsGuest()) {
+            $this->getController()->redirect(\yupe\helpers\Url::redirectUrl(
+                $module->loginSuccess
+            ));
+        }
 
         $badLoginCount = Yii::app()->authenticationManager->getBadLoginCount(Yii::app()->getUser());
-
-        $module = Yii::app()->getModule('user');
 
         $scenario = $badLoginCount >= (int)$module->badLoginCount ? LoginForm::LOGIN_LIMIT_SCENARIO : '';
 
@@ -36,10 +38,10 @@ class LoginAction extends CAction
             $form->setAttributes(Yii::app()->getRequest()->getPost('LoginForm'));
 
             if (Yii::app()->authenticationManager->login(
-                    $form,
-                    Yii::app()->getUser(),
-                    Yii::app()->getRequest()
-                )
+                $form,
+                Yii::app()->getUser(),
+                Yii::app()->getRequest()
+            )
             ) {
 
                 Yii::app()->getUser()->setFlash(

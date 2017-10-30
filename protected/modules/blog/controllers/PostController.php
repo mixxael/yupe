@@ -13,6 +13,9 @@
 class PostController extends \yupe\components\controllers\FrontController
 {
 
+    /**
+     *
+     */
     public function actionIndex()
     {
         $this->render('index', ['model' => Post::model()]);
@@ -56,6 +59,10 @@ class PostController extends \yupe\components\controllers\FrontController
         $this->render('tag', ['posts' => $posts, 'tag' => $tag]);
     }
 
+    /**
+     * @param $slug
+     * @throws CHttpException
+     */
     public function actionBlog($slug)
     {
         $blog = Blog::model()->getByUrl($slug)->find();
@@ -67,9 +74,13 @@ class PostController extends \yupe\components\controllers\FrontController
         $this->render('blog-post', ['target' => $blog, 'posts' => $blog->getPosts()]);
     }
 
+    /**
+     * @param $slug
+     * @throws CHttpException
+     */
     public function actionCategory($slug)
     {
-        $category = Category::model()->getByAlias($slug);
+        $category = Yii::app()->getComponent('categoriesRepository')->getByAlias($slug);
 
         if (null === $category) {
             throw new CHttpException(404, Yii::t('BlogModule.blog', 'Page was not found!'));
@@ -81,6 +92,9 @@ class PostController extends \yupe\components\controllers\FrontController
         );
     }
 
+    /**
+     *
+     */
     public function actionCategories()
     {
         $this->render('categories', ['categories' => Post::model()->getCategories()]);

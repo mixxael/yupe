@@ -79,7 +79,7 @@ $this->menu = [
 
 <div id="search-toggle" class="collapse out search-form">
     <?php
-    Yii::app()->clientScript->registerScript(
+    Yii::app()->getClientScript()->registerScript(
         'search',
         "
     $('.search-form form').submit(function () {
@@ -105,7 +105,9 @@ $this->menu = [
                 'name' => 'icon',
                 'header' => false,
                 'type' => 'raw',
-                'value' => 'CHtml::image($data->getImageUrl(64, 64), $data->name, array("width"  => 64, "height" => 64))',
+                'value' => function($data){
+                    return CHtml::image($data->getImageUrl(64, 64), $data->name, array("width"  => 64, "height" => 64));
+                },
                 'filter' => false,
             ],
             [
@@ -115,7 +117,7 @@ $this->menu = [
                     'url' => $this->createUrl('/blog/blogBackend/inline'),
                     'mode' => 'inline',
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken,
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken,
                     ],
                 ],
                 'filter' => CHtml::activeTextField($model, 'name', ['class' => 'form-control']),
@@ -127,7 +129,7 @@ $this->menu = [
                     'url' => $this->createUrl('/blog/blogBackend/inline'),
                     'mode' => 'inline',
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken,
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken,
                     ],
                 ],
                 'filter' => CHtml::activeTextField($model, 'slug', ['class' => 'form-control']),
@@ -145,7 +147,7 @@ $this->menu = [
                     ),
                     'source' => $model->getTypeList(),
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken,
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken,
                     ],
                 ],
                 'name' => 'type',
@@ -176,7 +178,7 @@ $this->menu = [
                 'filter' => CHtml::activeDropDownList(
                     $model,
                     'category_id',
-                    Category::model()->getFormattedList(Yii::app()->getModule('blog')->mainCategory),
+                    Yii::app()->getComponent('categoriesRepository')->getFormattedList(Yii::app()->getModule('blog')->mainCategory),
                     ['encode' => false, 'empty' => '', 'class' => 'form-control']
                 ),
             ],
@@ -186,22 +188,6 @@ $this->menu = [
                 'value' => 'CHtml::link($data->createUser->getFullName(), array("/user/userBackend/view", "id" => $data->createUser->id))',
                 'filter' => User::getFullNameList(),
             ],
-            [
-                'name' => 'create_time',
-                'value' => 'Yii::app()->getDateFormatter()->formatDateTime($data->create_time, "short", "short")',
-                'filter' => false,
-            ],
-            [
-                'header' => Yii::t('BlogModule.blog', 'Posts'),
-                'value' => 'CHtml::link($data->postsCount, array("/blog/postBackend/index","Post[blog_id]" => $data->id ))',
-                'type' => 'html',
-            ],
-            [
-                'header' => Yii::t('BlogModule.blog', 'Members'),
-                'value' => 'CHtml::link($data->membersCount, array("/blog/userToBlogBackend/index","UserToBlog[blog_id]" => $data->id ))',
-                'type' => 'html',
-            ],
-
             [
                 'class' => 'yupe\widgets\CustomButtonColumn',
                 'frontViewButtonUrl' => function ($data) {

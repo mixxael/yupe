@@ -35,6 +35,7 @@ class AttributeRender
                 return CHtml::dropDownList($name, $value, $data, array_merge($htmlOptions, (['empty' => '---'])));
                 break;
             case Attribute::TYPE_CHECKBOX_LIST:
+
                 $data = CHtml::listData($attribute->options, 'id', 'value');
 
                 return CHtml::checkBoxList($name.'[]', $value, $data, $htmlOptions);
@@ -45,8 +46,8 @@ class AttributeRender
             case Attribute::TYPE_NUMBER:
                 return CHtml::numberField($name, $value, $htmlOptions);
                 break;
-            case Attribute::TYPE_IMAGE:
-                return CHtml::fileField($name, null, $htmlOptions);
+            case Attribute::TYPE_FILE:
+                return CHtml::fileField($name.'[name]', null, $htmlOptions);
                 break;
         }
 
@@ -58,10 +59,10 @@ class AttributeRender
      * @param $value
      * @return string
      */
-    public static function renderValue($attribute, $value)
+    public static function renderValue(Attribute $attribute, $value, $template = '<p>{item}</p>')
     {
         $unit = $attribute->unit ? ' '.$attribute->unit : '';
-        $res = '';
+        $res = null;
         switch ($attribute->type) {
             case Attribute::TYPE_TEXT:
             case Attribute::TYPE_SHORT_TEXT:
@@ -70,8 +71,19 @@ class AttributeRender
                 break;
             case Attribute::TYPE_DROPDOWN:
                 $data = CHtml::listData($attribute->options, 'id', 'value');
-                if (!is_array($value) && isset($data[$value])) {
-                    $res = $data[$value];
+                if(is_array($value)) {
+                    $value = array_shift($value);
+                }
+                if (isset($data[$value])) {
+                    $res .= $data[$value];
+                }
+                break;
+            case Attribute::TYPE_CHECKBOX_LIST:
+                $data = CHtml::listData($attribute->options, 'id', 'value');
+                if(is_array($value)) {
+                    foreach (array_intersect(array_keys($data), $value) as $val) {
+                        $res .= strtr($template, ['{item}' => $data[$val]]);
+                    }
                 }
                 break;
             case Attribute::TYPE_CHECKBOX:

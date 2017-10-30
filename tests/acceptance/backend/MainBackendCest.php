@@ -1,9 +1,9 @@
 <?php
 namespace tests\acceptance\backend;
 
-use \WebGuy;
 use tests\acceptance\pages\CommonPage;
 use tests\acceptance\user\steps\UserSteps;
+use WebGuy;
 
 class MainBackendCest
 {
@@ -79,13 +79,19 @@ class MainBackendCest
         $I->see('Пользователи', 'h1');
 
         $I->amGoingTo('change backend language');
+
         $I->amOnPage('/en/backend');
         $I->see('Control panel "Yupe!"', 'h1');
+
         $I->amOnPage('/ru/backend');
+        $I->amOnPage('/backend');
         $I->see('Панель управления "Юпи!"', 'h1');
+
         $I->amOnPage('/en/backend');
         $I->see('Control panel "Yupe!"', 'h1');
+
         $I->amOnPage('/ru/backend');
+        $I->amOnPage('/backend');
         $I->see('Панель управления "Юпи!"', 'h1');
 
         $I->amGoingTo('change theme settings');
@@ -103,12 +109,7 @@ class MainBackendCest
         $I->amGoingTo('test modules page');
         $I->amOnPage('/backend/settings');
         $I->see('Модули', 'h1');
-        $I->seeLink('Юпи! (yupe)', '/backend/settings');
-        $I->seeLink('Пользователи (user)', '/backend/user/user');
-
-        //$I->amGoingTo('disable catalog module');
-        //$I->clickWithRightButton("[module='catalog']");
-        //$I->see('Вы уверены, что хотите отключить модуль?','.modal-body');
-
+        $I->seeLink('Юпи! (yupe)');
+        $I->seeLink('Пользователи (user)');
     }
 }

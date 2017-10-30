@@ -12,10 +12,22 @@
  **/
 use yupe\helpers\Url;
 
+/**
+ * Class RegistrationAction
+ */
 class RegistrationAction extends CAction
 {
+    /**
+     * @throws CHttpException
+     */
     public function run()
     {
+        if (false === Yii::app()->getUser()->getIsGuest()) {
+            $this->getController()->redirect(\yupe\helpers\Url::redirectUrl(
+                Yii::app()->getModule('user')->loginSuccess
+            ));
+        }
+
         $module = Yii::app()->getModule('user');
 
         if ($module->registrationDisabled) {
@@ -31,6 +43,10 @@ class RegistrationAction extends CAction
             if ($form->validate()) {
 
                 if ($user = Yii::app()->userManager->createUser($form)) {
+
+                    if (!$module->emailAccountVerification) {
+                        $this->autoLoginUser($form);
+                    }
 
                     Yii::app()->getUser()->setFlash(
                         yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
@@ -48,5 +64,25 @@ class RegistrationAction extends CAction
         }
 
         $this->getController()->render('registration', ['model' => $form, 'module' => $module]);
+    }
+
+    /**
+     * Auto-login user.
+     *
+     * @param RegistrationForm $form
+     * @return bool
+     */
+    private function autoLoginUser(RegistrationForm $form)
+    {
+        $loginForm = new LoginForm();
+        $loginForm->remember_me = true;
+        $loginForm->email = $form->email;
+        $loginForm->password = $form->password;
+
+        return Yii::app()->authenticationManager->login(
+            $loginForm,
+            Yii::app()->getUser(),
+            Yii::app()->getRequest()
+        );
     }
 }

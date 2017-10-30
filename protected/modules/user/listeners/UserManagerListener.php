@@ -1,5 +1,7 @@
 <?php
 
+Yii::import('application.modules.notify.models.NotifySettings');
+
 /**
  * Class UserManagerListener
  */
@@ -9,6 +11,27 @@ class UserManagerListener
      * @param UserRegistrationEvent $event
      */
     public static function onUserRegistration(UserRegistrationEvent $event)
+    {
+        Yii::app()->notify->send(
+            $event->getUser(),
+            Yii::t(
+                'UserModule.user',
+                'Registration on {site}',
+                ['{site}' => Yii::app()->getModule('yupe')->siteName]
+            ),
+            '//user/email/successRegistrationEmail',
+            [
+                'token' => $event->getToken(),
+                'user' => $event->getUser(),
+                'event' => $event,
+            ]
+        );
+    }
+
+    /**
+     * @param UserRegistrationEvent $event
+     */
+    public static function onUserRegistrationNeedActivation(UserRegistrationEvent $event)
     {
         Yii::app()->notify->send(
             $event->getUser(),
@@ -59,6 +82,17 @@ class UserManagerListener
                     'event' => $event,
                 ]
             );
+        }
+    }
+
+    public static function onSuccessActivateAccount(UserActivateEvent $event)
+    {
+        $user = $event->getUser();
+
+        if (null !== $user) {
+            $notify = new NotifySettings;
+            $notify->user_id = $user->id;
+            $notify->save();
         }
     }
 

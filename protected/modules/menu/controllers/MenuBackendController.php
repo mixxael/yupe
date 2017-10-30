@@ -12,6 +12,9 @@
  */
 class MenuBackendController extends yupe\components\controllers\BackController
 {
+    /**
+     * @return array
+     */
     public function accessRules()
     {
         return [
@@ -25,6 +28,9 @@ class MenuBackendController extends yupe\components\controllers\BackController
         ];
     }
 
+    /**
+     * @return array
+     */
     public function actions()
     {
         return [
@@ -83,7 +89,7 @@ class MenuBackendController extends yupe\components\controllers\BackController
             $model->setAttributes($data);
 
             if ($model->save()) {
-                Yii::app()->user->setFlash(
+                Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('MenuModule.menu', 'Menu was created!')
                 );
@@ -114,7 +120,7 @@ class MenuBackendController extends yupe\components\controllers\BackController
 
             if ($model->save()) {
 
-                Yii::app()->user->setFlash(
+                Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('MenuModule.menu', 'Record was updated!')
                 );
@@ -130,12 +136,11 @@ class MenuBackendController extends yupe\components\controllers\BackController
         $this->render('update', ['model' => $model]);
     }
 
+
     /**
-     * Удаляет модель меню из базы.
-     * Если удаление прошло успешно - возвращется в index
-     *
-     * @param integer $id идентификатор меню, который нужно удалить
-     *
+     * @param $id
+     * @throws CDbException
+     * @throws CHttpException
      */
     public function actionDelete($id)
     {
@@ -143,7 +148,7 @@ class MenuBackendController extends yupe\components\controllers\BackController
             // we only allow deletion via POST request
             $this->loadModel($id)->delete();
 
-            Yii::app()->user->setFlash(
+            Yii::app()->getUser()->setFlash(
                 yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                 Yii::t('MenuModule.menu', 'Record was removed!')
             );

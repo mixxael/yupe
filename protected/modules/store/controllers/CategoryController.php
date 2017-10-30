@@ -1,6 +1,9 @@
 <?php
 use yupe\components\controllers\FrontController;
 
+/**
+ * Class CategoryController
+ */
 class CategoryController extends FrontController
 {
     /**
@@ -9,29 +12,35 @@ class CategoryController extends FrontController
     protected $productRepository;
 
     /**
+     * @var StoreCategoryRepository
+     */
+    protected $categoryRepository;
+
+    /**
      * @var AttributeFilter
      */
     protected $attributeFilter;
 
+    /**
+     *
+     */
     public function init()
     {
+        parent::init();
         $this->productRepository = Yii::app()->getComponent('productRepository');
         $this->attributeFilter = Yii::app()->getComponent('attributesFilter');
-
-        parent::init();
+        $this->categoryRepository = Yii::app()->getComponent('categoryRepository');
     }
 
+    /**
+     *
+     */
     public function actionIndex()
     {
         $this->render(
             'index',
             [
-                'dataProvider' => new CArrayDataProvider(
-                    StoreCategory::model()->published()->getMenuList(1), [
-                        'id' => 'id',
-                        'pagination' => false,
-                    ]
-                ),
+                'dataProvider' => $this->categoryRepository->getAllDataProvider(),
             ]
         );
     }
@@ -42,23 +51,30 @@ class CategoryController extends FrontController
      */
     public function actionView($path)
     {
-        $category = StoreCategory::model()->findByPath($path);
+        $category = $this->categoryRepository->getByPath($path);
 
         if (null === $category) {
             throw new CHttpException(404);
         }
 
-        $data = Yii::app()->getRequest()->getQueryString() ? $this->productRepository->getByFilter(
-            $this->attributeFilter->getMainAttributesForSearchFromQuery(
-                Yii::app()->getRequest(),
-                [AttributeFilter::MAIN_SEARCH_PARAM_CATEGORY => [$category->id]]
-            ),
-            $this->attributeFilter->getTypeAttributesForSearchFromQuery(Yii::app()->getRequest())
-        ) : $this->productRepository->getListForCategory($category);
+        $typesSearchParam = $this->attributeFilter->getTypeAttributesForSearchFromQuery(Yii::app()->getRequest());
 
+        $mainSearchParam = $this->attributeFilter->getMainAttributesForSearchFromQuery(
+            Yii::app()->getRequest(),
+            [
+                AttributeFilter::MAIN_SEARCH_PARAM_CATEGORY => Yii::app()->getRequest()->getQuery('category',
+                    [$category->id]),
+            ]
+        );
+
+        if (!empty($mainSearchParam) || !empty($typesSearchParam)) {
+            $data = $this->productRepository->getByFilter($mainSearchParam, $typesSearchParam);
+        } else {
+            $data = $this->productRepository->getListForCategory($category);
+        }
 
         $this->render(
-            'view',
+            $category->view ?: 'view',
             [
                 'dataProvider' => $data,
                 'category' => $category,

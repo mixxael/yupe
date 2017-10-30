@@ -36,10 +36,10 @@ $this->menu = [
         $this->widget(
             'yupe\widgets\CustomGridView',
             [
-                'id' => 'attribute-group-grid',
+                'id' => 'attributes-groups-grid',
                 'type' => 'condensed',
                 'dataProvider' => $attributeGroup->search(),
-                'template' => "{items}\n{multiaction}",
+                'template' => "{items}\n{multiaction}\n{pager}",
                 'hideHeader' => true,
                 'selectableRows' => 1,
                 'sortableRows' => true,
@@ -77,7 +77,7 @@ $this->menu = [
         <?php $this->widget(
             'yupe\widgets\CustomGridView',
             [
-                'id' => 'attribute-grid',
+                'id' => 'attributes-grid',
                 'sortableRows' => true,
                 'sortableAjaxSave' => true,
                 'sortableAttribute' => 'sort',
@@ -87,12 +87,12 @@ $this->menu = [
                 'filter' => $model,
                 'columns' => [
                     [
-                        'name' => 'group_id',
+                        'name' => 'title',
+                        'type' => 'raw',
                         'value' => function ($data) {
-                            return $data->getGroupTitle();
+                            return CHtml::link($data->title,
+                                array("/store/attributeBackend/update", "id" => $data->id));
                         },
-                        'filter' => CHtml::activeDropDownList($model, 'group_id',
-                            AttributeGroup::model()->getFormattedList(), ['empty' => '', 'class' => 'form-control']),
                     ],
                     [
                         'name' => 'name',
@@ -102,20 +102,40 @@ $this->menu = [
                         },
                     ],
                     [
-                        'name' => 'title',
-                        'type' => 'raw',
-                        'value' => function ($data) {
-                            return CHtml::link($data->title,
-                                array("/store/attributeBackend/update", "id" => $data->id));
-                        },
-                    ],
-                    [
                         'name' => 'type',
                         'type' => 'text',
                         'value' => function ($data) {
                             return $data->getTypeTitle($data->type);
                         },
                         'filter' => $model->getTypesList(),
+                    ],
+                    [
+                        'name' => 'group_id',
+                        'value' => function ($data) {
+                            return $data->getGroupTitle();
+                        },
+                        'filter' => CHtml::activeDropDownList($model, 'group_id',
+                            AttributeGroup::model()->getFormattedList(), ['empty' => '', 'class' => 'form-control']),
+                    ],
+                    [
+                        'class' => 'yupe\widgets\EditableStatusColumn',
+                        'name' => 'required',
+                        'url' => $this->createUrl('/store/attributeBackend/inlineattr'),
+                        'source' => $model->getYesNoList(),
+                        'options' => [
+                            ['class' => 'label-default'],
+                            ['class' => 'label-success'],
+                        ],
+                    ],
+                    [
+                        'class' => 'yupe\widgets\EditableStatusColumn',
+                        'name' => 'is_filter',
+                        'url' => $this->createUrl('/store/attributeBackend/inlineattr'),
+                        'source' => $model->getYesNoList(),
+                        'options' => [
+                            ['class' => 'label-default'],
+                            ['class' => 'label-success'],
+                        ],
                     ],
                     [
                         'class' => 'yupe\widgets\CustomButtonColumn',
@@ -130,7 +150,6 @@ $this->menu = [
 <script type="text/javascript">
     $(document).ready(function () {
         var $container = $('body');
-
         $container.on('click', '#add-attribute-group', function (e) {
             e.preventDefault();
             var name = prompt('<?= Yii::t("StoreModule.store", "Title"); ?>');
@@ -144,12 +163,11 @@ $this->menu = [
                     dataType: 'json',
                     success: function (data) {
                         if (data.result) {
-                            $.fn.yiiGridView.update('attribute-group-grid');
+                            $.fn.yiiGridView.update('attributes-groups-grid');
                         }
                     }
                 });
             }
         });
     });
-
 </script>

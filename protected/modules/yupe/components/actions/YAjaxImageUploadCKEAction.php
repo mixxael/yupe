@@ -51,7 +51,7 @@ class YAjaxImageUploadCKEAction extends YAjaxImageUploadAction
         $form->file = $this->uploadedFile;
 
         if ($form->validate() && $this->uploadFile() && ($this->fileLink !== null && $this->fileName !== null)) {
-            $fullPath = $this->fileLink; //'filename' => $this->fileName;
+            $fullPath = $this->fileLink;
         } else {
             $message = implode("\n", $form->getErrors("file"));
         }
@@ -59,7 +59,6 @@ class YAjaxImageUploadCKEAction extends YAjaxImageUploadAction
         $callback = Yii::app()->getRequest()->getParam('CKEditorFuncNum');
         echo '<script type="text/javascript">window.parent.CKEDITOR.tools.callFunction("'.$callback.'", "'.$fullPath.'", "'.$message.'" );</script>';
         Yii::app()->end();
-
     }
 
     /**

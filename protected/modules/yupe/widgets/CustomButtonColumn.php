@@ -79,16 +79,20 @@ class CustomButtonColumn extends \TbButtonColumn
 
         $this->template = '<div class="btn-group">'.$this->template.'</div>';
 
-        if ($this->frontViewButtonLabel === null) {
-            $this->frontViewButtonLabel = Yii::t('zii', 'View');
-        }
-
         if ($this->frontViewButtonUrl) {
+
+            if ($this->frontViewButtonLabel === null) {
+                $this->frontViewButtonLabel = Yii::t('zii', 'View');
+            }
+
             $this->buttons['front_view'] = [
                 'label' => $this->frontViewButtonLabel,
                 'url' => $this->frontViewButtonUrl,
                 'options' => $this->frontViewButtonOptions,
                 'icon' => $this->frontViewButtonIcon,
+                'visible' => isset($this->buttons['front_view']['visible'])
+                    ? $this->buttons['front_view']['visible']
+                    : function () { return true; },
             ];
         } else {
             $this->buttons['front_view'] = [
@@ -97,5 +101,44 @@ class CustomButtonColumn extends \TbButtonColumn
                 },
             ];
         }
+
+        if (is_string($this->deleteConfirmation)) {
+            $confirmation = "if(!confirm(".\CJavaScript::encode($this->deleteConfirmation).")) return false;";
+        } else {
+            $confirmation = '';
+        }
+
+        if (Yii::app()->request->enableCsrfValidation) {
+            $csrfTokenName = Yii::app()->getRequest()->csrfTokenName;
+            $csrfToken = Yii::app()->getRequest()->csrfToken;
+            $csrf = "\n\t\tdata:{ '$csrfTokenName':'$csrfToken' },";
+        } else {
+            $csrf = '';
+        }
+
+        if ($this->afterDelete === null) {
+            $this->afterDelete = 'function(){}';
+        }
+
+        $this->buttons['delete']['click'] = <<<EOD
+function() {
+	$confirmation
+	var th = this,
+		afterDelete = $this->afterDelete;
+	jQuery('#{$this->grid->id}').yiiGridView('update', {
+		type: 'POST',
+		url: jQuery(this).attr('href'),$csrf
+		success: function(data) {
+			jQuery('#{$this->grid->id}').yiiGridView('update', {url: document.location.href });
+			afterDelete(th, true, data);
+		},
+		error: function(XHR) {
+			return afterDelete(th, false, XHR);
+		}
+	});
+	return false;
+}
+EOD;
     }
+
 }

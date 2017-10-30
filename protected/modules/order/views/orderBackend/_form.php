@@ -27,14 +27,14 @@ $form = $this->beginWidget(
 <div class="row">
     <div class="col-sm-12">
         <div class="row">
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <?= $form->labelEx($model, 'status_id'); ?>
                 <?php $this->widget(
                     'bootstrap.widgets.TbSelect2',
                     [
                         'model' => $model,
                         'attribute' => 'status_id',
-                        'data' => OrderStatus::model()->getList(),
+                        'data' => OrderHelper::statusList(),
                         'options' => [
                             'placeholder' => Yii::t('OrderModule.order', 'Status'),
                             'width' => '100%'
@@ -42,7 +42,7 @@ $form = $this->beginWidget(
                     ]
                 ); ?>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <?=
                 $form->datePickerGroup(
                     $model,
@@ -62,7 +62,7 @@ $form = $this->beginWidget(
                 );
                 ?>
             </div>
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <?= $form->labelEx($model, 'user_id'); ?>
                 <?php $this->widget(
                     'bootstrap.widgets.TbSelect2',
@@ -94,6 +94,26 @@ $form = $this->beginWidget(
                         ],
                     ]
                 ); ?>
+            </div>
+            <div class="col-sm-3">
+                <?= $form->labelEx($model, 'manager_id'); ?>
+                <?php $this->widget(
+                    'bootstrap.widgets.TbSelect2',
+                    [
+                        'model' => $model,
+                        'attribute' => 'manager_id',
+                        'data' => CHtml::listData(
+                            User::model()->findAll('access_level = :level', [':level' => User::ACCESS_LEVEL_ADMIN]),
+                            'id',
+                            'fullName'
+                        ),
+                        'options' => [
+                            'placeholder' => Yii::t('OrderModule.order', 'Select manager'),
+                            'width' => '100%'
+                        ],
+                    ]
+                ); ?>
+                <?= $form->error($model, 'manager_id') ?>
             </div>
         </div>
         <div class="row">
@@ -331,10 +351,11 @@ $form = $this->beginWidget(
                                         ],
                                         [
                                             'label' => Yii::t('OrderModule.order', 'Money'),
-                                            'value' => Yii::app()->getNumberFormatter()->formatCurrency(
+                                            'value' => '<span  class="label label-success">'.Yii::app()->getNumberFormatter()->formatCurrency(
                                                 $model->client->getOrderSum(),
                                                 Yii::app()->getModule('store')->currency
-                                            ),
+                                            ).'</span>',
+                                            'type' => 'html'
                                         ],
                                     ],
                                 ]

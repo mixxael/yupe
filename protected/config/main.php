@@ -38,7 +38,6 @@ return [
     'layout' => 'yupe',
     'charset' => 'UTF-8',
     'controllerNamespace' => 'application\controllers',
-    'preload' => defined('YII_DEBUG') && YII_DEBUG ? ['debug'] : [],
     'aliases' => [
         'bootstrap' => realpath(Yii::getPathOfAlias('vendor') . '/clevertech/yii-booster/src')
     ],
@@ -55,25 +54,16 @@ return [
             'class' => 'application.modules.yupe.YupeModule',
             'cache' => true
         ],
-        /**
-         * On production `gii` recommended disable
-         * @link http://www.yiiframework.com/doc/guide/1.1/en/quickstart.first-app
-         */
-        /*'gii'   => array(
-            'class'          => 'system.gii.GiiModule',
-            'password'       => 'giiYupe',
-            'generatorPaths' => array(
-                'application.modules.yupe.extensions.yupe.gii',
-            ),
-            'ipFilters'=>array(),
-        ),*/
     ],
     'behaviors' => [
-        'onBeginRequest' => [
+        'languageBehavior' => [
             'class' => 'yupe\components\urlManager\LanguageBehavior'
         ]
     ],
-    'params' => require __DIR__. '/params.php',
+    'params' => CMap::mergeArray(
+        require __DIR__ . '/params.php',
+        is_file(__DIR__ . '/params-local.php') ? require __DIR__ . '/params-local.php' : []
+    ),
     /**
      * Configuration base components
      * @link http://www.yiiframework.ru/doc/guide/ru/basics.component
@@ -82,13 +72,11 @@ return [
         'viewRenderer' => [
             'class' => 'vendor.yiiext.twig-renderer.ETwigViewRenderer',
             'twigPathAlias' => 'vendor.twig.twig.lib.Twig',
-            // All parameters below are optional, change them to your needs
             'fileExtension' => '.twig',
             'options' => ['autoescape' => true],
             'globals' => ['html' => 'CHtml'],
             'filters' => ['jencode' => 'CJSON::encode']
         ],
-        'debug' => ['class' => 'vendor.zhuravljov.yii2-debug.Yii2Debug', 'internalUrls' => true],
         /**
          * Database settings be used only after Yupe install         *
          * @link http://www.yiiframework.ru/doc/guide/ru/database.overview
@@ -120,7 +108,6 @@ return [
          */
         'urlManager' => [
             'class' => 'yupe\components\urlManager\LangUrlManager',
-            'languageInPath' => true,
             'langParam' => 'language',
             'urlFormat' => 'path',
             'urlSuffix' => '',
@@ -137,13 +124,10 @@ return [
                 '/install/default/<action:\w+>' => '/install/default/<action>',
                 '/backend' => '/yupe/backend/index',
                 '/backend/login' => '/user/account/backendlogin',
-                '/backend/<action:\w+>' => '/yupe/backend/<action>',
+                '/backend/<action:(AjaxFileUpload|AjaxImageUpload|AjaxImageUploadCKE|index|settings|flushDumpSettings|modulesettings|saveModulesettings|themesettings|modupdate|help|ajaxflush|transliterate)>' => '/yupe/backend/<action>',
                 '/backend/<module:\w+>/<controller:\w+>' => '/<module>/<controller>Backend/index',
                 '/backend/<module:\w+>/<controller:\w+>/<action:\w+>/<id:\d+>' => '/<module>/<controller>Backend/<action>',
                 '/backend/<module:\w+>/<controller:\w+>/<action:\w+>' => '/<module>/<controller>Backend/<action>',
-                '/gii/<controller:\w+>/<action:\w+>' => 'gii/<controller>/<action>',
-                '/site/<action:\w+>' => 'site/<action>',
-                '/debug/<controller:\w+>/<action:\w+>' => 'debug/<controller>/<action>'
             ]
         ],
         /**
@@ -179,12 +163,12 @@ return [
                 ]
             ]
         ],
-        'errorHandler' => [ // Use 'site/error' action to display errors
+        'errorHandler' => [
             'errorAction' => 'site/error'
         ]
     ],
     /**
-     * @link http://yupe.ru/docs/yupe/userspace.config.html
+     * @link http://docs.yupe.ru/userspace.config/
      */
     'rules' => [
     ]

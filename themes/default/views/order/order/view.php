@@ -9,7 +9,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
 <div class="row">
     <div class="col-sm-12">
         <h1><?= Yii::t("OrderModule.order", "Order #"); ?><?= $model->id; ?>
-            <small>[<?= $model->status->getTitle(); ?>]</small>
+            <small>[<?= CHtml::encode($model->getStatusTitle()); ?>]</small>
         </h1>
         <table class="table">
             <tbody>
@@ -17,9 +17,9 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                 <tr>
                     <td class="col-sm-5">
                         <div class="media">
-                            <?php $productUrl = Yii::app()->createUrl('/store/product/view', ['name' => $position->product->slug]); ?>
+                            <?php $productUrl = ProductHelper::getUrl($position->product); ?>
                             <a class="img-thumbnail pull-left" href="<?= $productUrl; ?>">
-                                <img class="media-object" src="<?= $position->product->getImageUrl(72, 72); ?>">
+                                <img class="media-object" src="<?= StoreImage::product($position->product, 72, 72); ?>">
                             </a>
 
                             <div class="media-body">
@@ -42,7 +42,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                         <p class="text-right lead">
                             <strong>
                                 <span class=""><?= $position->price; ?></span>
-                                <?= Yii::t("OrderModule.order", "RUB"); ?>
+                                <?= Yii::t("OrderModule.order", Yii::app()->getModule('store')->currency); ?>
                                 ×
                                 <?= $position->quantity; ?> <?= Yii::t("OrderModule.order", "PCs"); ?>
                             </strong>
@@ -52,7 +52,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                         <p class="text-right lead">
                             <strong>
                                 <span
-                                    class=""><?= $position->getTotalPrice(); ?></span> <?= Yii::t("OrderModule.order", "RUB"); ?>
+                                    class=""><?= $position->getTotalPrice(); ?></span> <?= Yii::t("OrderModule.order", Yii::app()->getModule('store')->currency); ?>
                             </strong>
                         </p>
                     </td>
@@ -81,7 +81,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                         <strong>
                             <small>
                                 <?= $model->getTotalPrice(); ?>
-                                <?= Yii::t("OrderModule.order", "RUB"); ?>
+                                <?= Yii::t("OrderModule.order", Yii::app()->getModule('store')->currency); ?>
                             </small>
                         </strong>
                     </p>
@@ -98,7 +98,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                 <td>
                     <p class="text-right lead">
                         <strong>
-                            <small><?= $model->getDeliveryPrice(); ?>  <?= Yii::t("OrderModule.order", "RUB"); ?></small>
+                            <small><?= $model->getDeliveryPrice(); ?>  <?= Yii::t("OrderModule.order", Yii::app()->getModule('store')->currency); ?></small>
                         </strong>
                     </p>
                 </td>
@@ -109,7 +109,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                 </td>
                 <td>
                     <p class="text-right lead">
-                        <strong><?= $model->getTotalPriceWithDelivery(); ?></strong> <?= Yii::t("OrderModule.order", "RUB"); ?>
+                        <strong><?= $model->getTotalPriceWithDelivery(); ?></strong> <?= Yii::t("OrderModule.order", Yii::app()->getModule('store')->currency); ?>
                     </p>
                 </td>
             </tr>
@@ -189,7 +189,7 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                 </td>
 
             </tr>
-            <?php if (!$model->isPaid() && !empty($model->delivery) && $model->delivery->hasPaymentMethods()): ?>
+            <?php if (!$model->isPaid() && !$model->isPaymentMethodSelected() && !empty($model->delivery) && $model->delivery->hasPaymentMethods()): ?>
                 <tr>
                     <td colspan="3">
                         <ul id="payment-methods">
@@ -230,7 +230,12 @@ $this->title = Yii::t('OrderModule.order', 'Order #{n}', [$model->id]);
                 <tr>
                     <td colspan="3">
                         <p class="text-right">
-                            <span class="aler alert-warning"><?= $model->getPaidStatus(); ?></span>
+                            <span class="aler alert-warning">
+                                <?= $model->getPaidStatus(); ?>
+                                <?php if($model->payment):?>
+                                    <?= CHtml::encode($model->payment->name);?>
+                                <?php endif;?>
+                            </span>
                         </p>
                     </td>
                 </tr>

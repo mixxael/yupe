@@ -71,9 +71,9 @@ $this->breadcrumbs = [
                                 <input type="hidden" class="position-id" value="<?= $positionId; ?>"/>
 
                                 <div class="media">
-                                    <?php $productUrl = Yii::app()->createUrl('/store/product/view', ['name' => $position->slug]); ?>
+                                    <?php $productUrl = ProductHelper::getUrl($position); ?>
                                     <a class="img-thumbnail pull-left" href="<?= $productUrl; ?>">
-                                        <img class="media-object" src="<?= $position->getProductModel()->getImageUrl(72, 72); ?>">
+                                        <img class="media-object" src="<?= StoreImage::product($position->getProductModel(), 72, 72); ?>">
                                     </a>
 
                                     <div class="media-body">
@@ -87,8 +87,8 @@ $this->breadcrumbs = [
                                         <span>
                                             <?= Yii::t("CartModule.cart", "Status"); ?>:
                                         </span>
-                                        <span class="text-<?= $position->in_stock ? "success" : "warning"; ?>">
-                                            <strong><?= $position->in_stock ? Yii::t("CartModule.cart", "In stock") : Yii::t("CartModule.cart", "Not in stock"); ?></strong>
+                                        <span class="text-<?= $position->isInStock() ? "success" : "warning"; ?>">
+                                            <strong><?= $position->isInStock() ? Yii::t("CartModule.cart", "In stock") : Yii::t("CartModule.cart", "Not in stock"); ?></strong>
                                         </span>
                                     </div>
                                 </div>
@@ -111,13 +111,13 @@ $this->breadcrumbs = [
                             <td class="col-sm-2 text-center">
                                 <strong>
                                     <span class="position-price"><?= $position->getPrice(); ?></span>
-                                    <?= Yii::t("CartModule.cart", "RUB"); ?>
+                                    <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>
                                 </strong>
                             </td>
                             <td class="col-sm-2 text-center">
                                 <strong>
                                     <span class="position-sum-price"><?= $position->getSumPrice(); ?></span>
-                                    <?= Yii::t("CartModule.cart", "RUB"); ?>
+                                    <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>
                                 </strong>
                             </td>
                             <td class="col-sm-1 text-right">
@@ -137,7 +137,7 @@ $this->breadcrumbs = [
                                 <strong id="cart-full-cost">
                                     <?= Yii::app()->cart->getCost(); ?>
                                 </strong>
-                                <?= Yii::t("CartModule.cart", "RUB"); ?>
+                                <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>
                             </h4>
                         </td>
                     </tr>
@@ -199,12 +199,12 @@ $this->breadcrumbs = [
                                                        data-available-from="<?= $delivery->available_from; ?>"
                                                        data-separate-payment="<?= $delivery->separate_payment; ?>">
                                                 <?= $delivery->name; ?> - <?= $delivery->price; ?>
-                                                <?= Yii::t("CartModule.cart", "RUB"); ?>(
+                                                <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>(
                                                 <?= Yii::t("CartModule.cart", "available from"); ?>
                                                 <?= $delivery->available_from; ?>
-                                                <?= Yii::t("CartModule.cart", "RUB"); ?>;
+                                                <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>;
                                                 <?= Yii::t("CartModule.cart", "free from"); ?> <?= $delivery->free_from; ?>
-                                                <?= Yii::t("CartModule.cart", "RUB"); ?>; )
+                                                <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?>; )
                                                 <?=($delivery->separate_payment ? Yii::t("CartModule.cart", "Pay separately") : ""); ?>
                                             </label>
                                             <div class="text-muted">
@@ -229,14 +229,14 @@ $this->breadcrumbs = [
                             </h5>
                         </td>
                         <td colspan="2" style="text-align: right;">
-                            <h4><strong id="cart-shipping-cost">0</strong> <?= Yii::t("CartModule.cart", "RUB"); ?></h4>
+                            <h4><strong id="cart-shipping-cost">0</strong> <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?></h4>
                         </td>
                     </tr>
                     <tr>
                         <td>  </td>
                         <td colspan="2"><h4><?= Yii::t("CartModule.cart", "Total"); ?></h4></td>
                         <td colspan="2" style="text-align: right;">
-                            <h4><strong id="cart-full-cost-with-shipping">0</strong> <?= Yii::t("CartModule.cart", "RUB"); ?></h4>
+                            <h4><strong id="cart-full-cost-with-shipping">0</strong> <?= Yii::t("CartModule.cart", Yii::app()->getModule('store')->currency); ?></h4>
                         </td>
                     </tr>
                     <tr>

@@ -34,13 +34,14 @@ Yii::import('application.modules.comment.components.ICommentable');
  * @property double $purchase_price
  * @property double $recommended_price
  * @property integer $position
- * @property integer $external_id
+ * @property string $external_id
  * @property string $title
  * @property string $meta_canonical
  * @property string $image_alt
  * @property string $image_title
+ * @property string $view
  *
- * @method getImageUrl($width = 0, $height = 0, $crop = true, $defaultImage = null)
+ * @method getImageUrl
  *
  * The followings are the available model relations:
  * @property Type $type
@@ -67,15 +68,11 @@ class Product extends yupe\models\YModel implements ICommentable
     /**
      *
      */
-    const STATUS_ZERO = 0;
+    const STATUS_NOT_ACTIVE = 0;
     /**
      *
      */
     const STATUS_ACTIVE = 1;
-    /**
-     *
-     */
-    const STATUS_NOT_ACTIVE = 2;
 
     /**
      *
@@ -102,15 +99,15 @@ class Product extends yupe\models\YModel implements ICommentable
     protected $_variantsOptions = false;
 
     /**
-     * @var bool
+     * @var array
      */
-    protected $_attributesValues = false;
+    protected $_attributesValues;
 
 
     /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
-     * @return Good the static model class
+     * @return Product Static model class
      */
     public static function model($className = __CLASS__)
     {
@@ -131,14 +128,19 @@ class Product extends yupe\models\YModel implements ICommentable
     public function rules()
     {
         return [
-            ['name, slug', 'required', 'except' => 'search'],
             [
                 'name, title, description, short_description, slug, price, discount_price, discount, data, status, is_special',
                 'filter',
                 'filter' => 'trim',
             ],
             [
-                'status, is_special, producer_id, type_id, quantity, in_stock, category_id, external_id',
+                'name, title, description, short_description, slug, price, discount_price, discount, data, status, is_special',
+                'filter',
+                'filter' => [$obj = new CHtmlPurifier(), 'purify'],
+            ],
+            ['name, slug', 'required'],
+            [
+                'status, is_special, producer_id, type_id, quantity, in_stock, category_id',
                 'numerical',
                 'integerOnly' => true,
             ],
@@ -151,9 +153,10 @@ class Product extends yupe\models\YModel implements ICommentable
                 'length',
                 'max' => 250,
             ],
-            ['discount_price, discount', 'default', 'value' => null],
-            ['sku', 'length', 'max' => 100],
+            ['discount_price, discount, average_price, purchase_price, recommended_price', 'default', 'value' => null],
+            ['sku, view', 'length', 'max' => 100],
             ['slug', 'length', 'max' => 150],
+            ['external_id', 'length', 'max' => 100],
             [
                 'slug',
                 'yupe\components\validators\YSLugValidator',
@@ -280,6 +283,7 @@ class Product extends yupe\models\YModel implements ICommentable
             'meta_canonical' => Yii::t('StoreModule.store', 'Canonical'),
             'image_alt' => Yii::t('StoreModule.store', 'Image alt'),
             'image_title' => Yii::t('StoreModule.store', 'Image title'),
+            'view' => Yii::t('StoreModule.store', 'Template'),
         ];
     }
 
@@ -318,6 +322,7 @@ class Product extends yupe\models\YModel implements ICommentable
             'meta_canonical' => Yii::t('StoreModule.store', 'Canonical'),
             'image_alt' => Yii::t('StoreModule.store', 'Image alt'),
             'image_title' => Yii::t('StoreModule.store', 'Image title'),
+            'view' => Yii::t('StoreModule.store', 'Template'),
         ];
     }
 
@@ -328,36 +333,41 @@ class Product extends yupe\models\YModel implements ICommentable
     public function search()
     {
         $criteria = new CDbCriteria;
-
-        $criteria->compare('id', $this->id);
-        $criteria->compare('type_id', $this->type_id);
-        $criteria->compare('t.name', $this->name, true);
-        $criteria->compare('price', $this->price);
-        $criteria->compare('sku', $this->sku, true);
-        $criteria->compare('short_description', $this->short_description, true);
-        $criteria->compare('description', $this->description, true);
-        $criteria->compare('slug', $this->slug, true);
-        $criteria->compare('data', $this->data, true);
-        $criteria->compare('is_special', $this->is_special);
-        $criteria->compare('t.status', $this->status);
-        $criteria->compare('create_time', $this->create_time, true);
-        $criteria->compare('update_time', $this->update_time, true);
-        $criteria->compare('producer_id', $this->producer_id);
-        $criteria->compare('purchase_price', $this->purchase_price);
-        $criteria->compare('average_price', $this->average_price);
-        $criteria->compare('recommended_price', $this->recommended_price);
-        $criteria->compare('in_stock', $this->in_stock);
         $criteria->with = ['category', 'categories'];
 
+        $criteria->compare('id', $this->id);
+        $criteria->compare('t.type_id', $this->type_id);
+        $criteria->compare('t.name', $this->name, true);
+        $criteria->compare('t.price', $this->price);
+        $criteria->compare('t.discount_price', $this->discount_price);
+        $criteria->compare('t.sku', $this->sku, true);
+        $criteria->compare('t.short_description', $this->short_description, true);
+        $criteria->compare('t.description', $this->description, true);
+        $criteria->compare('t.slug', $this->slug, true);
+        $criteria->compare('t.data', $this->data, true);
+        $criteria->compare('t.is_special', $this->is_special);
+        $criteria->compare('t.status', $this->status);
+        $criteria->compare('t.create_time', $this->create_time, true);
+        $criteria->compare('t.update_time', $this->update_time, true);
+        $criteria->compare('t.producer_id', $this->producer_id);
+        $criteria->compare('t.purchase_price', $this->purchase_price);
+        $criteria->compare('t.average_price', $this->average_price);
+        $criteria->compare('t.recommended_price', $this->recommended_price);
+        $criteria->compare('t.in_stock', $this->in_stock);
+        $criteria->compare('t.quantity', $this->quantity);
+
         if ($this->category_id) {
-            $criteria->with = ['categoryRelation' => ['together' => true]];
-            $criteria->addCondition('categoryRelation.category_id = :category_id OR t.category_id = :category_id');
-            $criteria->group = 't.id';
-            $criteria->params = CMap::mergeArray($criteria->params, [':category_id' => $this->category_id]);
+            $categoryCriteria = new CDbCriteria();
+            $categoryCriteria->compare('t.category_id', $this->category_id);
+            $categoryCriteria->addCondition(sprintf('t.id IN (SELECT product_id FROM {{store_product_category}} WHERE category_id = :category_id)'),
+                'OR');
+            $categoryCriteria->params = CMap::mergeArray($categoryCriteria->params,
+                [':category_id' => $this->category_id]);
+            $criteria->mergeWith($categoryCriteria);
         }
 
         return new CActiveDataProvider(
-            get_class($this), [
+            'Product', [
                 'criteria' => $criteria,
                 'sort' => ['defaultOrder' => 't.update_time DESC, t.create_time DESC'],
             ]
@@ -440,7 +450,6 @@ class Product extends yupe\models\YModel implements ICommentable
     public function getStatusList()
     {
         return [
-            self::STATUS_ZERO => Yii::t('StoreModule.store', 'Not available'),
             self::STATUS_ACTIVE => Yii::t('StoreModule.store', 'Active'),
             self::STATUS_NOT_ACTIVE => Yii::t('StoreModule.store', 'Not active'),
         ];
@@ -572,22 +581,45 @@ class Product extends yupe\models\YModel implements ICommentable
 
         try {
 
-            AttributeValue::model()->deleteAll('product_id = :id', [':id' => $this->id]);
-
             foreach ($attributes as $attribute => $value) {
 
                 if (null === $value) {
                     continue;
                 }
 
-                $model = new AttributeValue();
+                $model = AttributeValue::model()->find('product_id = :product AND attribute_id = :attribute', [
+                    ':product' => $this->id,
+                    ':attribute' => $attribute,
+                ]);
 
-                if (false === $model->store($attribute, $value, $this)) {
-                    throw new InvalidArgumentException('Error store attribute!');
+                //множественные значения
+                if (is_array($value)) {
+
+                    AttributeValue::model()->deleteAll('product_id = :product AND attribute_id = :attribute', [
+                        ':product' => $this->id,
+                        ':attribute' => $attribute,
+                    ]);
+
+                    foreach ($value as $val) {
+                        $model = new AttributeValue();
+                        if (false === $model->store($attribute, $val, $this)) {
+                            throw new InvalidArgumentException('Error store attribute!');
+                        }
+                    }
+
+                } else {
+
+                    $model = $model ?: new AttributeValue();
+
+                    if (false === $model->store($attribute, $value, $this)) {
+                        throw new InvalidArgumentException('Error store attribute!');
+                    }
                 }
             }
 
             $transaction->commit();
+
+            return true;
         } catch (Exception $e) {
             $transaction->rollback();
 
@@ -595,10 +627,26 @@ class Product extends yupe\models\YModel implements ICommentable
         }
     }
 
+
+    /**
+     * @param $attribute
+     * @return string
+     */
+    public function attributeFile($attribute)
+    {
+        $value = $this->attribute($attribute);
+
+        if (null === $value) {
+            return null;
+        }
+
+        return Yii::app()->getRequest()->getBaseUrl(true).'/'.Yii::app()->getModule('yupe')->uploadPath.'/'.Yii::app()->getModule('store')->uploadPath.'/product/'.$value;
+    }
+
     /**
      * @param $attribute
      * @param null $default
-     * @return bool|float|int|null|string
+     * @return bool|float|int|null|string|array
      */
     public function attribute($attribute, $default = null)
     {
@@ -608,21 +656,48 @@ class Product extends yupe\models\YModel implements ICommentable
 
         $this->loadAttributes();
 
-        return isset($this->_attributesValues[$attribute->id]) ? $this->_attributesValues[$attribute->id]->value($default) : $default;
-    }
+        $attributeName = $attribute instanceof Attribute ? $attribute->name : $attribute;
 
+        if (!array_key_exists($attributeName, $this->_attributesValues)) {
+            return $default;
+        }
+
+        //если атрибут имеет множество значений - вернем их массив
+        if (is_array($this->_attributesValues[$attributeName])) {
+            $values = [];
+            foreach ($this->_attributesValues[$attributeName] as $attribute) {
+                $value = $attribute->value($default);
+
+                if (is_null($value)) {
+                    continue;
+                }
+
+                $values[] = $value;
+            }
+
+            return $values;
+        }
+
+        return $this->_attributesValues[$attributeName]->value($default);
+    }
 
     /**
      *
      */
     protected function loadAttributes()
     {
-        if (false === $this->_attributesValues) {
+        if (null === $this->_attributesValues) {
 
             $this->_attributesValues = [];
 
             foreach ($this->attributesValues as $attribute) {
-                $this->_attributesValues[$attribute->attribute_id] = $attribute;
+
+                //собираем массив multiple values attributes
+                if ($attribute->attribute->isMultipleValues()) {
+                    $this->_attributesValues[$attribute->attribute->name][] = $attribute;
+                } else {
+                    $this->_attributesValues[$attribute->attribute->name] = $attribute;
+                }
             }
         }
     }
@@ -723,8 +798,8 @@ class Product extends yupe\models\YModel implements ICommentable
             }
 
             $criteria = new CDbCriteria();
-            $criteria->addCondition('product_id = :product_id');
             $criteria->params = [':product_id' => $this->id];
+            $criteria->addCondition('product_id = :product_id');
             $criteria->addNotInCondition('id', $productVariants);
             ProductVariant::model()->deleteAll($criteria);
             $transaction->commit();
@@ -848,7 +923,7 @@ class Product extends yupe\models\YModel implements ICommentable
      */
     public function getLink()
     {
-        return Yii::app()->createUrl('/store/product/view', ['name' => $this->slug]);
+        return ProductHelper::getUrl($this);
     }
 
     /**
@@ -954,6 +1029,14 @@ class Product extends yupe\models\YModel implements ICommentable
     }
 
     /**
+     * @return ProductVariant[]
+     */
+    public function getVariants()
+    {
+        return $this->variants;
+    }
+
+    /**
      * @return array
      */
     public function getVariantsGroup()
@@ -979,7 +1062,7 @@ class Product extends yupe\models\YModel implements ICommentable
         $options = [];
 
         foreach ((array)$this->variants as $variant) {
-            $options[$variant->id] = array('data-type' => $variant->type, 'data-amount' => $variant->amount);
+            $options[$variant->id] = ['data-type' => $variant->type, 'data-amount' => $variant->amount];
         }
         $this->_variantsOptions = $options;
 
@@ -1040,61 +1123,23 @@ class Product extends yupe\models\YModel implements ICommentable
         return null;
     }
 
+
     /**
-     * Связывает продукты
-     * @param $product Product|int Ид продукта или продукт
-     * @param null $type_id Тип связи
+     * @param $product
+     * @param null $typeId
      * @return bool
      */
-    public function link($product, $type_id = null)
+    public function link($product, $typeId = null)
     {
         $link = new ProductLink();
-        $link->product_id = $this->id;
-        $link->linked_product_id = ($product instanceof Product ? $product->id : $product);
-        $link->type_id = $type_id;
+
+        $link->setAttributes([
+            'product_id' => $this->id,
+            'linked_product_id' => ($product instanceof Product ? $product->id : $product),
+            'type_id' => $typeId,
+        ]);
 
         return $link->save();
-    }
-
-    /**
-     * @param null|string $typeCode
-     * @return CDbCriteria
-     */
-    public function getLinkedProductsCriteria($typeCode = null)
-    {
-        $criteria = new CDbCriteria();
-
-        $criteria->join .= ' JOIN {{store_product_link}} linked ON t.id = linked.linked_product_id';
-        $criteria->compare('linked.product_id', $this->id);
-        if (null !== $typeCode) {
-            $criteria->join .= ' JOIN {{store_product_link_type}} type ON type.id = linked.type_id';
-            $criteria->compare('type.code', $typeCode);
-        }
-
-        return $criteria;
-    }
-
-    /**
-     * Список связанных с продуктом продуктов
-     * @param null|string $typeCode
-     * @return Product[]
-     */
-    public function getLinkedProducts($typeCode = null)
-    {
-        return Product::model()->findAll($this->getLinkedProductsCriteria($typeCode));
-    }
-
-    /**
-     * @param null|string $typeCode
-     * @return CActiveDataProvider
-     */
-    public function getLinkedProductsDataProvider($typeCode = null)
-    {
-        return new CActiveDataProvider(
-            get_class($this), [
-                'criteria' => $this->getLinkedProductsCriteria($typeCode),
-            ]
-        );
     }
 
 

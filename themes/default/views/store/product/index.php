@@ -5,9 +5,8 @@ Yii::app()->getClientScript()->registerCssFile($mainAssets . '/css/store-fronten
 Yii::app()->getClientScript()->registerScriptFile($mainAssets . '/js/store.js');
 
 /* @var $category StoreCategory */
-
+$this->title = Yii::t("StoreModule.store", "Catalog");
 $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
-
 ?>
 
 <div class="row">
@@ -20,10 +19,13 @@ $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
     <?php $this->widget('application.modules.store.widgets.SearchProductWidget'); ?>
 </div>
 <div class="row">
-    <form id="store-filter" name="store-filter" method="get">
-        <div class="col-sm-3">
+    <div class="col-sm-3">
+        <form id="store-filter" name="store-filter" method="get">
             <div>
                 <?php $this->widget('application.modules.store.widgets.filters.PriceFilterWidget'); ?>
+            </div>
+            <div>
+                <?php $this->widget('application.modules.store.widgets.filters.SizeFilterWidget'); ?>
             </div>
             <div>
                 <?php $this->widget('application.modules.store.widgets.filters.CategoryFilterWidget'); ?>
@@ -34,8 +36,12 @@ $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
             <div>
                 <?php $this->widget('application.modules.store.widgets.filters.FilterBlockWidget', ['attributes' => '*']); ?>
             </div>
-        </div>
-    </form>
+        </form>
+        <?php if($this->beginCache('store::category::count')):?>
+            <?php $this->widget('application.modules.store.widgets.CategoryWidget', ['view' => 'category-with-count']); ?>
+            <?php $this->endCache(); ?>
+        <?php endif;?>
+    </div>
     <div class="col-sm-9">
         <section>
             <div class="grid">

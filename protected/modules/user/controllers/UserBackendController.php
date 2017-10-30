@@ -13,6 +13,9 @@
  **/
 class UserBackendController extends yupe\components\controllers\BackController
 {
+    /**
+     * @return array
+     */
     public function accessRules()
     {
         return [
@@ -23,18 +26,21 @@ class UserBackendController extends yupe\components\controllers\BackController
             ['allow', 'actions' => ['update', 'inline', 'sendactivation'], 'roles' => ['User.UserBackend.Update']],
             ['allow', 'actions' => ['delete', 'multiaction'], 'roles' => ['User.UserBackend.Delete']],
             ['allow', 'actions' => ['changepassword'], 'roles' => ['User.UserBackend.Changepassword']],
-            ['deny']
+            ['deny'],
         ];
     }
 
+    /**
+     * @return array
+     */
     public function actions()
     {
         return [
             'inline' => [
-                'class'           => 'yupe\components\actions\YInLineEditAction',
-                'model'           => 'User',
-                'validAttributes' => ['access_level', 'status', 'email_confirm']
-            ]
+                'class' => 'yupe\components\actions\YInLineEditAction',
+                'model' => 'User',
+                'validAttributes' => ['access_level', 'status', 'email_confirm'],
+            ],
         ];
     }
 
@@ -103,8 +109,8 @@ class UserBackendController extends yupe\components\controllers\BackController
             $model->setAttributes(
                 [
                     'hash' => Yii::app()->userManager->hasher->hashPassword(
-                            Yii::app()->userManager->hasher->generateRandomPassword()
-                        ),
+                        Yii::app()->userManager->hasher->generateRandomPassword()
+                    ),
                 ]
             );
 
@@ -176,23 +182,26 @@ class UserBackendController extends yupe\components\controllers\BackController
     {
         if (Yii::app()->getRequest()->getIsPostRequest()) {
 
-            // we only allow deletion via POST request
-            if ($this->loadModel($id)->delete()) {
-                Yii::app()->getUser()->setFlash(
-                    yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
-                    Yii::t('UserModule.user', 'Record was removed!')
-                );
-            } else {
-                Yii::app()->getUser()->setFlash(
-                    yupe\widgets\YFlashMessages::ERROR_MESSAGE,
-                    Yii::t('UserModule.user', 'You can\'t make this changes!')
-                );
-            }
+            header('Content-Type: application/json');
 
-            // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
-            Yii::app()->getRequest()->getParam('ajax') !== null || $this->redirect(
-                (array)Yii::app()->getRequest()->getPost('returnUrl', 'index')
-            );
+            try {
+                $this->loadModel($id)->delete();
+
+                echo CJavaScript::jsonEncode([
+                    'message' => [
+                        'text' => Yii::t('UserModule.user', 'The entry is successfully deleted.'),
+                    ],
+                    'type' => 'success',
+                ]);
+
+            } catch (Exception $e) {
+                echo CJavaScript::jsonEncode([
+                    'message' => [
+                        'text' => Yii::t('UserModule.user', 'You can\'t delete an user.'),
+                    ],
+                    'type' => 'danger',
+                ]);
+            }
         } else {
             throw new CHttpException(
                 400,
@@ -273,7 +282,7 @@ class UserBackendController extends yupe\components\controllers\BackController
                 ),
                 '//user/email/needAccountActivationEmail',
                 [
-                    'token' => $token
+                    'token' => $token,
                 ]
             );
 
@@ -328,7 +337,7 @@ class UserBackendController extends yupe\components\controllers\BackController
                 Yii::t('UserModule.user', 'requested page was not found!')
             );
         } elseif ($user->email_confirm) {
-            return $this->badRequest();
+            $this->badRequest();
         }
 
         $tokenStorage = new TokenStorage();
@@ -339,7 +348,7 @@ class UserBackendController extends yupe\components\controllers\BackController
                 Yii::t('UserModule.user', 'Email verification'),
                 '//user/email/needEmailActivationEmail',
                 [
-                    'token' => $token
+                    'token' => $token,
                 ]
             );
 

@@ -1,10 +1,9 @@
 <?php
-
 $mainAssets = Yii::app()->getTheme()->getAssetsUrl();
 Yii::app()->getClientScript()->registerScriptFile($mainAssets . '/js/store.js');
 
 /* @var $category StoreCategory */
-
+$this->title = Yii::t("StoreModule.store", "Catalog");
 $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
 
 ?>
@@ -19,7 +18,7 @@ $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
                 <form id="store-filter" name="store-filter" method="get">
                     <?php $this->widget('application.modules.store.widgets.filters.QFilterWidget'); ?>
                     <?php $this->widget('application.modules.store.widgets.filters.PriceFilterWidget'); ?>
-                    <?php $this->widget('application.modules.store.widgets.filters.CategoryFilterWidget'); ?>
+                    <?php $this->widget('application.modules.store.widgets.filters.CategoryFilterWidget', ['limit' => 30]); ?>
                     <?php $this->widget('application.modules.store.widgets.filters.ProducerFilterWidget', ['limit' => 30]); ?>
                     <?php $this->widget('application.modules.store.widgets.filters.FilterBlockWidget', ['attributes' => '*']); ?>
                 </form>
@@ -67,5 +66,4 @@ $this->breadcrumbs = [Yii::t("StoreModule.store", "Catalog")];
         </div>
     </div>
 </div>
-<?php $this->widget('application.modules.store.widgets.ProducersWidget', ['limit' => 25]) ?>
 

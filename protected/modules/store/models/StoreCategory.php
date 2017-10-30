@@ -12,18 +12,19 @@ use yupe\components\Event;
  * @property integer $status
  * @property integer $parent_id
  * @property integer $sort
- * @property integer $external_id
+ * @property string $external_id
  * @property string $title
  * @property string $meta_canonical
  * @property string $image_alt
  * @property string $image_title
+ * @property string $view
  *
  * @property-read StoreCategory $parent
  * @property-read StoreCategory[] $children
  *
- * @method StoreCategory published()
- * @method StoreCategory roots()
- * @method getImageUrl($width = 0, $height = 0, $crop = true, $defaultImage = null)
+ * @method StoreCategory published
+ * @method StoreCategory roots
+ * @method getImageUrl
  *
  */
 class StoreCategory extends \yupe\models\YModel
@@ -68,13 +69,14 @@ class StoreCategory extends \yupe\models\YModel
             ],
             ['name, slug', 'filter', 'filter' => [$obj = new CHtmlPurifier(), 'purify']],
             ['name, slug', 'required'],
-            ['parent_id, status, sort, external_id', 'numerical', 'integerOnly' => true],
+            ['parent_id, status, sort', 'numerical', 'integerOnly' => true],
             ['parent_id, status', 'length', 'max' => 11],
             ['parent_id', 'default', 'setOnEmpty' => true, 'value' => null],
             ['status', 'numerical', 'integerOnly' => true],
             ['status', 'length', 'max' => 11],
             ['name, title, image, image_alt, image_title, meta_title, meta_keywords, meta_description, meta_canonical', 'length', 'max' => 250],
             ['slug', 'length', 'max' => 150],
+            ['external_id, view', 'length', 'max' => 100],
             [
                 'slug',
                 'yupe\components\validators\YSLugValidator',
@@ -110,8 +112,10 @@ class StoreCategory extends \yupe\models\YModel
                 'requestPathAttribute' => 'path',
                 'parentAttribute' => 'parent_id',
                 'parentRelation' => 'parent',
+                'statAttribute' => 'productCount',
                 'defaultCriteria' => [
                     'order' => 't.sort',
+                    'with' => 'productCount',
                 ],
                 'titleAttribute' => 'name',
                 'iconAttribute' => function(StoreCategory $item){
@@ -157,6 +161,10 @@ class StoreCategory extends \yupe\models\YModel
             'roots' => [
                 'condition' => 'parent_id IS NULL',
             ],
+            'child' => [
+                'condition' => 'parent_id = :id',
+                'params' => [':id' => $this->id],
+            ]
         ];
     }
 
@@ -169,6 +177,16 @@ class StoreCategory extends \yupe\models\YModel
         Yii::app()->eventManager->fire(StoreEvents::CATEGORY_AFTER_SAVE, new Event($this));
 
         return parent::afterSave();
+    }
+
+    /**
+     *
+     */
+    public function afterDelete()
+    {
+        Yii::app()->eventManager->fire(StoreEvents::CATEGORY_AFTER_DELETE, new Event($this));
+
+        parent::afterDelete();
     }
 
     /**
@@ -194,6 +212,7 @@ class StoreCategory extends \yupe\models\YModel
             'meta_canonical' => Yii::t('StoreModule.store', 'Canonical'),
             'image_alt' => Yii::t('StoreModule.store', 'Image alt'),
             'image_title' => Yii::t('StoreModule.store', 'Image title'),
+            'view' => Yii::t('StoreModule.store', 'Template'),
         ];
     }
 
@@ -219,6 +238,7 @@ class StoreCategory extends \yupe\models\YModel
             'meta_canonical' => Yii::t('StoreModule.store', 'Canonical'),
             'image_alt' => Yii::t('StoreModule.store', 'Image alt'),
             'image_title' => Yii::t('StoreModule.store', 'Image title'),
+            'view' => Yii::t('StoreModule.store', 'Template'),
         ];
     }
 
@@ -283,6 +303,9 @@ class StoreCategory extends \yupe\models\YModel
         return $this->parent ? $this->parent->name : '---';
     }
 
+    /**
+     * @return string
+     */
     public function getTitle()
     {
         return $this->title ?: $this->name;

@@ -21,8 +21,8 @@ $this->breadcrumbs = [Yii::t('UserModule.user', 'Sign up')];
         $('#generate_password').click(function () {
             var pass = str_rand($(this).data('minlength'));
             $('#RegistrationForm_password').attr('type', 'text');
-            $('#RegistrationForm_password').attr('value', pass);
-            $('#RegistrationForm_cPassword').attr('value', pass);
+            $('#RegistrationForm_password').val(pass);
+            $('#RegistrationForm_cPassword').val(pass);
         });
     })
 </script>
@@ -42,23 +42,29 @@ $this->breadcrumbs = [Yii::t('UserModule.user', 'Sign up')];
 
 <?php if (!$this->module->generateNickName) : ?>
     <div class='row'>
-        <div class="col-xs-6">
+        <div class="col-sm-6">
             <?= $form->textFieldGroup($model, 'nick_name'); ?>
         </div>
     </div>
 <?php endif; ?>
 
 <div class='row'>
-    <div class="col-xs-6">
+    <div class="col-sm-6">
         <?= $form->textFieldGroup($model, 'email'); ?>
     </div>
 </div>
 
 <div class='row'>
-    <div class="col-xs-6">
+    <div class="col-sm-6">
         <?= $form->passwordFieldGroup($model, 'password'); ?>
     </div>
-    <div class="col-xs-4" style="padding-top: 25px;">
+</div>
+
+<div class='row'>
+    <div class="col-sm-6">
+        <?= $form->passwordFieldGroup($model, 'cPassword'); ?>
+    </div>
+    <div class="col-sm-4 form-group" style="padding-top: 25px;">
         <?php $this->widget(
             'bootstrap.widgets.TbButton',
             [
@@ -69,12 +75,6 @@ $this->breadcrumbs = [Yii::t('UserModule.user', 'Sign up')];
                 ],
             ]
         ); ?>
-    </div>
-</div>
-
-<div class='row'>
-    <div class="col-xs-6">
-        <?= $form->passwordFieldGroup($model, 'cPassword'); ?>
     </div>
 </div>
 
@@ -126,7 +126,7 @@ $this->breadcrumbs = [Yii::t('UserModule.user', 'Sign up')];
                 'vendor.nodge.yii-eauth.EAuthWidget',
                 [
                     'action' => '/social/login',
-                    'predefinedServices' => ['google', 'facebook', 'vkontakte', 'twitter', 'github'],
+                    'predefinedServices' => ['google', 'facebook', 'vkontakte', 'twitter', 'github', 'odnoklassniki'],
                 ]
             ); ?>
         </div>

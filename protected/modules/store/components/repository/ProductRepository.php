@@ -25,12 +25,16 @@ class ProductRepository extends CApplicationComponent
      */
     public function getByFilter(array $mainSearchAttributes, array $typeSearchAttributes)
     {
-        $criteria = new CDbCriteria();
-        $criteria->select = 't.*';
-        $criteria->params = [];
+        /** @var StoreModule $module */
+        $module = Yii::app()->getModule('store');
+
+        $criteria = new CDbCriteria([
+            'select' => 't.*',
+            'distinct' => true,
+            'params' => [],
+        ]);
         $criteria->addCondition('t.status = :status');
         $criteria->params['status'] = Product::STATUS_ACTIVE;
-
 
         //поиск по категории, производителю и цене
         foreach ($this->attributeFilter->getMainSearchParams() as $param => $field) {
@@ -39,18 +43,21 @@ class ProductRepository extends CApplicationComponent
                 continue;
             }
 
-            if ($param === 'category') {
+            if ('category' === $param) {
+
                 $categories = [];
 
                 foreach ($mainSearchAttributes[$param] as $categoryId) {
-                    $categories[] = $categoryId;
+                    $categories[] = (int)$categoryId;
                     $categories = CMap::mergeArray($categories, StoreCategory::model()->getChildsArray($categoryId));
                 }
 
-                $criteria->with = ['categoryRelation' => ['together' => true]];
-                $criteria->addInCondition('categoryRelation.category_id', array_unique($categories));
-                $criteria->addInCondition('t.category_id', array_unique($categories), 'OR');
-                $criteria->group = 't.id';
+                $builder = new CDbCommandBuilder(Yii::app()->getDb()->getSchema());
+
+                $criteria->addInCondition('t.category_id', array_unique($categories));
+                $criteria->addCondition(sprintf('t.id IN (SELECT product_id FROM {{store_product_category}} WHERE %s)',
+                    $builder->createInCondition('{{store_product_category}}', 'category_id', $categories)), 'OR');
+
                 continue;
             }
 
@@ -71,9 +78,18 @@ class ProductRepository extends CApplicationComponent
             }
         }
 
-        //поиск по названию
+        //поиск по названию и артикулу
         if (!empty($mainSearchAttributes[AttributeFilter::MAIN_SEARCH_PARAM_NAME])) {
-            $criteria->addSearchCondition('name', $mainSearchAttributes[AttributeFilter::MAIN_SEARCH_PARAM_NAME], true);
+
+            $term = trim($mainSearchAttributes[AttributeFilter::MAIN_SEARCH_PARAM_NAME]);
+
+            $words = explode(' ', $term);
+
+            foreach ($words as $word) {
+                $word = trim($word);
+                $criteria->addSearchCondition('t.name', $word, true, 'AND');
+                $criteria->addSearchCondition('t.sku', $word, true, 'OR');
+            }
         }
 
         $criteria->mergeWith($this->buildCriteriaForTypeAttributes($typeSearchAttributes));
@@ -83,12 +99,12 @@ class ProductRepository extends CApplicationComponent
             [
                 'criteria' => $criteria,
                 'pagination' => [
-                    'pageSize' => (int)Yii::app()->getModule('store')->itemsPerPage,
+                    'pageSize' => (int)$module->itemsPerPage,
                     'pageVar' => 'page',
                 ],
                 'sort' => [
                     'sortVar' => 'sort',
-                    'defaultOrder' => 't.position',
+                    'defaultOrder' => $module->getDefaultSort(),
                 ],
             ]
         );
@@ -160,12 +176,14 @@ class ProductRepository extends CApplicationComponent
         return $criteria;
     }
 
-
     /**
      * @return CActiveDataProvider
      */
     public function getListForIndexPage()
     {
+        /** @var StoreModule $module */
+        $module = Yii::app()->getModule('store');
+
         $criteria = new CDbCriteria();
         $criteria->select = 't.*';
         $criteria->scopes = ['published'];
@@ -175,12 +193,12 @@ class ProductRepository extends CApplicationComponent
             [
                 'criteria' => $criteria,
                 'pagination' => [
-                    'pageSize' => (int)Yii::app()->getModule('store')->itemsPerPage,
+                    'pageSize' => (int)$module->itemsPerPage,
                     'pageVar' => 'page',
                 ],
                 'sort' => [
                     'sortVar' => 'sort',
-                    'defaultOrder' => 't.position',
+                    'defaultOrder' => $module->getDefaultSort(),
                 ],
             ]
         );
@@ -188,30 +206,40 @@ class ProductRepository extends CApplicationComponent
 
     /**
      * @param StoreCategory $category
-     * @param integer $limit
+     * @param bool $withChild
+     * @param null $limit
      * @return CActiveDataProvider
      */
-    public function getListForCategory(StoreCategory $category, $limit = null)
+    public function getListForCategory(StoreCategory $category, $withChild = true, $limit = null)
     {
+        $categories = [];
+        /** @var StoreModule $module */
+        $module = Yii::app()->getModule('store');
+
+        if (true === $withChild) {
+            $categories = $category->getChildsArray();
+        }
+
+        $categories[] = $category->id;
+
+        $criteria = new CDbCriteria([
+            'scopes' => ['published'],
+        ]);
+
+        $builder = new CDbCommandBuilder(Yii::app()->getDb()->getSchema());
+
+        $criteria->addInCondition('t.category_id', array_unique($categories));
+        $criteria->addCondition(sprintf('t.id IN (SELECT product_id FROM {{store_product_category}} WHERE %s)',
+            $builder->createInCondition('{{store_product_category}}', 'category_id', $categories)), 'OR');
+
         $pagination = [
-            'pageSize' => (int)Yii::app()->getModule('store')->itemsPerPage,
+            'pageSize' => (int)$module->itemsPerPage,
             'pageVar' => 'page',
         ];
 
-        $categories = $category->getChildsArray();
-        $categories[] = $category->id;
-
-        $criteria = new CDbCriteria();
-        $criteria->select = 't.*';
-        $criteria->with = ['categoryRelation' => ['together' => true]];
-        $criteria->addInCondition('categoryRelation.category_id', $categories);
-        $criteria->addInCondition('t.category_id', $categories, 'OR');
-        $criteria->group = 't.id';
-        $criteria->scopes = ['published'];
-
         if ($limit) {
             $pagination = false;
-            $criteria->limit = $limit;
+            $criteria->limit = (int)$limit;
         }
 
         return new CActiveDataProvider(
@@ -221,7 +249,7 @@ class ProductRepository extends CApplicationComponent
                 'pagination' => $pagination,
                 'sort' => [
                     'sortVar' => 'sort',
-                    'defaultOrder' => 't.position',
+                    'defaultOrder' => $module->getDefaultSort(),
                 ],
             ]
         );
@@ -272,8 +300,8 @@ class ProductRepository extends CApplicationComponent
         $criteria->addSearchCondition('name', $name);
         $provider = new CActiveDataProvider(
             Product::model()->published(), [
-            'criteria' => $criteria,
-        ]
+                'criteria' => $criteria,
+            ]
         );
 
         return new CDataProviderIterator($provider);
@@ -287,6 +315,9 @@ class ProductRepository extends CApplicationComponent
      */
     public function getByBrandProvider(Producer $producer)
     {
+        /** @var StoreModule $module */
+        $module = Yii::app()->getModule('store');
+
         $criteria = new CDbCriteria();
         $criteria->condition = 'producer_id = :producer_id';
         $criteria->scopes = ['published'];
@@ -296,16 +327,16 @@ class ProductRepository extends CApplicationComponent
 
         return new CActiveDataProvider(
             Product::model(), [
-            'criteria' => $criteria,
-            'pagination' => [
-                'pageSize' => (int)Yii::app()->getModule('store')->itemsPerPage,
-                'pageVar' => 'page',
-            ],
-            'sort' => [
-                'sortVar' => 'sort',
-                'defaultOrder' => 't.position',
-            ],
-        ]
+                'criteria' => $criteria,
+                'pagination' => [
+                    'pageSize' => (int)$module->itemsPerPage,
+                    'pageVar' => 'page',
+                ],
+                'sort' => [
+                    'sortVar' => 'sort',
+                    'defaultOrder' => $module->getDefaultSort(),
+                ],
+            ]
         );
     }
 
@@ -315,6 +346,9 @@ class ProductRepository extends CApplicationComponent
      */
     public function getByIds(array $ids)
     {
+        /** @var StoreModule $module */
+        $module = Yii::app()->getModule('store');
+
         $criteria = new CDbCriteria();
         $criteria->scopes = ['published'];
         $criteria->addInCondition('t.id', $ids);
@@ -323,13 +357,37 @@ class ProductRepository extends CApplicationComponent
             Product::model(), [
                 'criteria' => $criteria,
                 'pagination' => [
-                    'pageSize' => (int)Yii::app()->getModule('store')->itemsPerPage,
+                    'pageSize' => (int)$module->itemsPerPage,
                     'pageVar' => 'page',
                 ],
                 'sort' => [
                     'sortVar' => 'sort',
-                    'defaultOrder' => 't.position',
+                    'defaultOrder' => $module->getDefaultSort(),
                 ],
+            ]
+        );
+    }
+
+    /**
+     * @param Product $product
+     * @param null $typeCode
+     * @return CActiveDataProvider
+     */
+    public function getLinkedProductsDataProvider(Product $product, $typeCode = null)
+    {
+        $criteria = new CDbCriteria();
+        $criteria->scopes = ['published'];
+        $criteria->order = 'linked.position DESC';
+        $criteria->join  = ' JOIN {{store_product_link}} linked ON t.id = linked.linked_product_id';
+        $criteria->compare('linked.product_id', $product->id);
+        if (null !== $typeCode) {
+            $criteria->join .= ' JOIN {{store_product_link_type}} type ON type.id = linked.type_id';
+            $criteria->compare('type.code', $typeCode);
+        }
+
+        return new CActiveDataProvider(
+            'Product', [
+                'criteria' => $criteria,
             ]
         );
     }

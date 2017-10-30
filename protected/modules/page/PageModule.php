@@ -15,7 +15,7 @@ class PageModule extends yupe\components\WebModule
     /**
      *
      */
-    const VERSION = '1.0';
+    const VERSION = '1.1';
 
     /**
      * @return array
@@ -136,7 +136,6 @@ class PageModule extends yupe\components\WebModule
             ]
         );
 
-        // Если у модуля не задан редактор - спросим у ядра
         if (!$this->editor) {
             $this->editor = Yii::app()->getModule('yupe')->editor;
         }
@@ -177,7 +176,11 @@ class PageModule extends yupe\components\WebModule
             [
                 'icon' => 'fa fa-fw fa-folder-open',
                 'label' => Yii::t('PageModule.page', 'Pages categories'),
-                'url' => ['/category/categoryBackend/index', 'Category[parent_id]' => (int)$this->mainCategory],
+                'url' => [
+                    '/category/categoryBackend/index',
+                    'module' => $this->getId(),
+                    'parent' => $this->mainCategory ?: null
+                ],
             ],
         ];
     }

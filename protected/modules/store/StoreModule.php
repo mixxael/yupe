@@ -10,7 +10,27 @@ class StoreModule extends WebModule
     /**
      *
      */
-    const VERSION = '1.0';
+    const VERSION = '1.1';
+
+    /**
+     * @var
+     */
+    public $zipcode;
+
+    /**
+     * @var
+     */
+    public $city;
+
+    /**
+     * @var
+     */
+    public $title;
+
+    /**
+     * @var
+     */
+    public $address;
 
     /**
      * @var
@@ -22,6 +42,9 @@ class StoreModule extends WebModule
      */
     public $email;
 
+    /**
+     * @var string
+     */
     public $currency = 'RUB';
 
     /**
@@ -56,7 +79,24 @@ class StoreModule extends WebModule
      * @var int
      */
     public $itemsPerPage = 20;
+    /**
+     * @var string
+     */
+    public $defaultSort = 'position';
+    /**
+     * @var string
+     */
+    public $defaultSortDirection = 'ASC';
 
+    /**
+     * @return array
+     */
+    public function getDependencies()
+    {
+        return [
+            'comment',
+        ];
+    }
 
     /**
      * @return string
@@ -90,15 +130,43 @@ class StoreModule extends WebModule
         return true;
     }
 
+    /**
+     * @return array
+     */
     public function getCurrencyList()
     {
         return [
             'USD' => 'USD',
             'RUB' => 'RUB',
-            'EUR' => 'EUR'
+            'EUR' => 'EUR',
+            'KZT' => 'KZT',
+            'BYB' => 'BYB',
+            'UAH' => 'UAH',
         ];
     }
 
+    /**
+     * @return array
+     */
+    public function getSortList()
+    {
+        return [
+            'position' => Yii::t('StoreModule.store', 'Position'),
+            'sku' => Yii::t('StoreModule.store', 'SKU'),
+            'name' => Yii::t('StoreModule.store', 'Name'),
+            'price' => Yii::t('StoreModule.store', 'Price'),
+            'create_time' => Yii::t('StoreModule.store', 'Create time'),
+            'update_time' => Yii::t('StoreModule.store', 'Update time'),
+        ];
+    }
+
+    public function getSortDirectionList()
+    {
+        return [
+            'ASC' => Yii::t('StoreModule.store', 'ASC'),
+            'DESC' => Yii::t('StoreModule.store', 'DESC'),
+        ];
+    }
 
     /**
      * @return array
@@ -112,7 +180,13 @@ class StoreModule extends WebModule
             'itemsPerPage',
             'phone',
             'email',
-            'currency' => $this->getCurrencyList()
+            'currency' => $this->getCurrencyList(),
+            'title',
+            'address',
+            'city',
+            'zipcode',
+            'defaultSort' => $this->getSortList(),
+            'defaultSortDirection' => $this->getSortDirectionList(),
         ];
     }
 
@@ -132,7 +206,13 @@ class StoreModule extends WebModule
             'itemsPerPage' => Yii::t('StoreModule.store', 'Items per page'),
             'phone' => Yii::t('StoreModule.store', 'Phone'),
             'email' => Yii::t('StoreModule.store', 'Email'),
-            'currency' => Yii::t('StoreModule.store', 'Currency')
+            'currency' => Yii::t('StoreModule.store', 'Currency'),
+            'address' => Yii::t('StoreModule.store', 'Address'),
+            'title' => Yii::t('StoreModule.store', 'Name'),
+            'city' => Yii::t('StoreModule.store', 'City'),
+            'zipcode' => Yii::t('StoreModule.store', 'Zip code'),
+            'defaultSort' => Yii::t('StoreModule.store', 'Default sort'),
+            'defaultSortDirection' => Yii::t('StoreModule.store', 'Default sort direction'),
         ];
     }
 
@@ -145,15 +225,21 @@ class StoreModule extends WebModule
             '0.store' => [
                 'label' => Yii::t('StoreModule.store', 'Store'),
                 'items' => [
+                    'title',
+                    'city',
+                    'address',
+                    'zipcode',
                     'phone',
                     'email',
-                    'itemsPerPage'
+                    'currency',
                 ],
             ],
-            '1.store' => [
-                'label' => Yii::t('StoreModule.store', 'Currency'),
+            '1.catalog' => [
+                'label' => Yii::t('StoreModule.store', 'Catalog'),
                 'items' => [
-                    'currency'
+                    'itemsPerPage',
+                    'defaultSort',
+                    'defaultSortDirection',
                 ],
             ],
             '2.main' => [
@@ -163,7 +249,7 @@ class StoreModule extends WebModule
                     'defaultImage',
                 ],
             ],
-            '3.main' => [
+            '3.editors' => [
                 'label' => Yii::t('StoreModule.store', 'Visual editor settings'),
                 'items' => [
                     'editor',
@@ -298,7 +384,7 @@ class StoreModule extends WebModule
      */
     public function getAdminPageLink()
     {
-        return '/store/storeBackend/index';
+        return '/store/productBackend/index';
     }
 
     /**
@@ -555,5 +641,16 @@ class StoreModule extends WebModule
                 ],
             ],
         ];
+    }
+
+    /**
+     * Returns default product sort attribute and direction
+     *
+     * @param string $table
+     * @return string
+     */
+    public function getDefaultSort($table = 't')
+    {
+        return $table . '.' . $this->defaultSort . ' ' . $this->defaultSortDirection;
     }
 }

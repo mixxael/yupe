@@ -35,18 +35,9 @@ $this->widget(
         'filter' => $model,
         'actionsButtons' => false,
         'columns' => [
-            [
-                'name' => 'name',
-                'filter' => false
-            ],
-            [
-                'name' => 'phone',
-                'filter' => false
-            ],
-            [
-                'name' => 'time',
-                'filter' => false
-            ],
+            'name',
+            'phone',
+            'time',
             [
                 'class' => 'bootstrap.widgets.TbEditableColumn',
                 'name' => 'comment',
@@ -58,7 +49,7 @@ $this->widget(
                     'inputclass' => 'input-large',
                     'title' => Yii::t('CallbackModule.callback', 'Comment'),
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
                 'filter' => CHtml::activeTextField($model, 'comment', ['class' => 'form-control']),
@@ -70,6 +61,34 @@ $this->widget(
                 'url' => $this->createUrl('/callback/callbackBackend/inline'),
                 'source' => Callback::model()->getStatusList(),
                 'options' => Callback::model()->getStatusLabelList(),
+            ],
+            [
+                'name' => 'create_time',
+                'type' => 'html',
+                'filter' => $this->widget('booster.widgets.TbDatePicker', [
+                    'model' => $model,
+                    'attribute' => 'create_time',
+                    'options' => [
+                        'format' => 'yyyy-mm-dd'
+                    ],
+                    'htmlOptions' => [
+                        'class' => 'form-control',
+                    ],
+                ], true),
+                'value' => function (Callback $data) {
+                    return Yii::app()->getDateFormatter()->formatDateTime($data->create_time, 'medium');
+                },
+            ],
+            [
+                'name' => 'url',
+                'type' => 'raw',
+                'value' => function (Callback $data) {
+                    return CHtml::link(mb_strimwidth($data->url, 0, 80, '&#8230;'), $data->url, [
+                        'data-toggle' => 'tooltip',
+                        'title' => $data->url,
+                        'target' => '_blank',
+                    ]);
+                }
             ],
             [
                 'class' => 'yupe\widgets\CustomButtonColumn',

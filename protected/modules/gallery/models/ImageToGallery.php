@@ -18,6 +18,7 @@
  * @property string $image_id
  * @property string $gallery_id
  * @property string $create_time
+ * @property integer $position
  *
  * The followings are the available model relations:
  * @property Gallery $gallery
@@ -50,7 +51,7 @@ class ImageToGallery extends yupe\models\YModel
     {
         return [
             ['image_id, gallery_id', 'required'],
-            ['image_id, gallery_id', 'numerical', 'integerOnly' => true],
+            ['image_id, gallery_id, position', 'numerical', 'integerOnly' => true],
             ['id, image_id, gallery_id, create_time', 'safe', 'on' => 'search'],
         ];
     }
@@ -64,7 +65,16 @@ class ImageToGallery extends yupe\models\YModel
         // class name for the relations automatically generated below.
         return [
             'gallery' => [self::BELONGS_TO, 'Gallery', 'gallery_id'],
-            'image'   => [self::BELONGS_TO, 'Image', 'image_id'],
+            'image' => [self::BELONGS_TO, 'Image', 'image_id'],
+        ];
+    }
+
+    public function behaviors()
+    {
+        return [
+            'sortable' => [
+                'class' => 'yupe\components\behaviors\SortableBehavior',
+            ],
         ];
     }
 
@@ -74,9 +84,9 @@ class ImageToGallery extends yupe\models\YModel
     public function attributeLabels()
     {
         return [
-            'id'            => Yii::t('GalleryModule.gallery', 'id'),
-            'image_id'      => Yii::t('GalleryModule.gallery', 'Image'),
-            'gallery_id'    => Yii::t('GalleryModule.gallery', 'Gallery'),
+            'id' => Yii::t('GalleryModule.gallery', 'id'),
+            'image_id' => Yii::t('GalleryModule.gallery', 'Image'),
+            'gallery_id' => Yii::t('GalleryModule.gallery', 'Gallery'),
             'create_time' => Yii::t('GalleryModule.gallery', 'Created at'),
         ];
     }

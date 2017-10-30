@@ -14,6 +14,9 @@ $mainAssets = Yii::app()->getAssetManager()->publish(
     Yii::getPathOfAlias('application.modules.yupe.views.assets')
 );
 
+$isAdmin = Yii::app()->getUser()->checkAccess('admin');
+$canUpdateUser = Yii::app()->getUser()->checkAccess('User.UserBackend.Update');
+
 foreach ($modules as &$item) {
     $item['linkOptions'] = ['title' => $item['label']];
     $item['label'] = CHtml::tag('span', ['class' => 'hidden-sm'], $item['label']);
@@ -72,7 +75,7 @@ $this->widget(
                                 [
                                     'icon' => 'fa fa-fw fa-th-large',
                                     'label' => Yii::t('YupeModule.yupe', 'Additional modules'),
-                                    'url' => 'http://yupe.ru/marketplace?from=help',
+                                    'url' => 'http://yupe.ru/store?from=help',
                                     'linkOptions' => ['target' => '_blank'],
                                 ],
                                 [
@@ -96,7 +99,7 @@ $this->widget(
                                 [
                                     'icon' => 'fa fa-fw fa-thumbs-up',
                                     'label' => Yii::t('YupeModule.yupe', 'Order development and support'),
-                                    'url' => 'http://amylabs.ru/contact?from=help-support',
+                                    'url' => 'http://yupe.ru/service/development?from=help-support',
                                     'linkOptions' => ['target' => '_blank'],
                                 ],
                                 [
@@ -130,9 +133,12 @@ $this->widget(
                                 [
                                     'icon' => 'fa fa-fw fa-cog',
                                     'label' => Yii::t('YupeModule.yupe', 'Profile'),
-                                    'url' => CHtml::normalizeUrl(
+                                    'url' => ($isAdmin || $canUpdateUser) ?
+                                        CHtml::normalizeUrl(
                                             (['/user/userBackend/update', 'id' => Yii::app()->getUser()->getId()])
-                                        ),
+                                        ) 
+                                        : 
+                                        Yii::app()->createAbsoluteUrl('/user/profile/profile'),
                                 ],
                                 [
                                     'icon' => 'fa fa-fw fa-power-off',
