@@ -63,7 +63,10 @@ $this->breadcrumbs = [
                 <?php foreach ($positions as $position): ?>
                     <div class="cart-list__item">
                         <?php $positionId = $position->getId(); ?>
-                        <?php $productUrl = ProductHelper::getUrl($position); ?>
+                        <?php $productUrl = Yii::app()->createUrl(
+                            '/store/product/view',
+                            ['name' => $position->slug]
+                        ); ?>
                         <?= CHtml::hiddenField('OrderProduct['.$positionId.'][product_id]', $position->id); ?>
                         <input type="hidden" class="position-id" value="<?= $positionId; ?>"/>
 
