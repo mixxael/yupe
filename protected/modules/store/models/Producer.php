@@ -13,8 +13,9 @@
  * @property string $meta_title
  * @property string $meta_description
  * @property string $meta_keywords
+ * @property string $view
  *
- * @method getImageUrl($width = 0, $height = 0, $crop = true, $defaultImage = null)
+ * @method getImageUrl
  */
 class Producer extends yupe\models\YModel
 {
@@ -44,13 +45,12 @@ class Producer extends yupe\models\YModel
      */
     public function rules()
     {
-        // NOTE: you should only define rules for those attributes that
-        // will receive user inputs.
         return [
             ['name_short, name, slug, status', 'required'],
             ['name_short, name, slug, short_description, description', 'filter', 'filter' => 'trim'],
             ['sort', 'numerical', 'integerOnly' => true],
             ['name_short', 'length', 'max' => 150],
+            ['view', 'length', 'max' => 150],
             ['name, image, meta_title, meta_keywords, meta_description', 'length', 'max' => 250],
             ['short_description, description', 'safe'],
             ['status', 'in', 'range' => array_keys($this->getStatusList())],
@@ -75,7 +75,7 @@ class Producer extends yupe\models\YModel
     {
         return [
             'published' => [
-                'condition' => 'status = :status',
+                'condition' => 't.status = :status',
                 'params' => [':status' => self::STATUS_ACTIVE],
                 'order' => 'sort ASC',
             ],
@@ -110,25 +110,13 @@ class Producer extends yupe\models\YModel
             'meta_title' => Yii::t('StoreModule.store', 'Meta title'),
             'meta_keywords' => Yii::t('StoreModule.store', 'Meta keywords'),
             'meta_description' => Yii::t('StoreModule.store', 'Meta description'),
+            'view' => Yii::t('StoreModule.store', 'Template'),
         ];
     }
 
-    /**
-     * Retrieves a list of models based on the current search/filter conditions.
-     *
-     * Typical usecase:
-     * - Initialize the model fields with values from filter form.
-     * - Execute this method to get CActiveDataProvider instance which will filter
-     * models according to data in model fields.
-     * - Pass data provider to CGridView, CListView or any similar widget.
-     *
-     * @return CActiveDataProvider the data provider that can return the models
-     * based on the search/filter conditions.
-     */
+
     public function search()
     {
-        // @todo Please modify the following code to remove attributes that should not be searched.
-
         $criteria = new CDbCriteria;
 
         $criteria->compare('id', $this->id);
@@ -175,7 +163,7 @@ class Producer extends yupe\models\YModel
                 'minSize' => $module->minSize,
                 'maxSize' => $module->maxSize,
                 'types' => $module->allowedExtensions,
-                'uploadPath' => $module !== null ? $module->uploadPath . '/producer' : null,
+                'uploadPath' => $module !== null ? $module->uploadPath.'/producer' : null,
                 'resizeOptions' => [
                     'maxWidth' => 900,
                     'maxHeight' => 900,
@@ -216,54 +204,5 @@ class Producer extends yupe\models\YModel
     public function getFormattedList()
     {
         return CHtml::listData(Producer::model()->findAll(), 'id', 'name_short');
-    }
-
-    /**
-     * Get producer by slug
-     *
-     * @param $slug
-     * @return null|Producer
-     */
-    public function getBySlug($slug)
-    {
-        return $this->published()->find('slug = :slug', [':slug' => $slug]);
-    }
-
-    /**
-     * Get all brands
-     *
-     * @param int $limit
-     * @param string $order
-     * @return mixed
-     */
-    public function getAll($limit = -1, $order = 'sort ASC')
-    {
-        $criteria = new CDbCriteria();
-        $criteria->order = $order;
-        $criteria->limit = $limit;
-
-        return $this->published()->findAll($criteria);
-    }
-
-    /**
-     * Get all brands
-     *
-     * @return CActiveDataProvider
-     */
-    public function getAllDataProvider()
-    {
-        $criteria = new CDbCriteria();
-        $criteria->scopes = ['published'];
-        $criteria->order = 'sort';
-
-        return new CActiveDataProvider(
-            get_class($this), [
-                'criteria' => $criteria,
-                'pagination' => [
-                    'pageSize' => 20,
-                    'pageVar' => 'page',
-                ],
-            ]
-        );
     }
 }

@@ -1,19 +1,34 @@
 <?php
+
+/**
+ * Class CallbackManager
+ */
 class CallbackManager extends CApplicationComponent
 {
     /** @var CallbackController */
     private $view;
 
+    /**
+     * @var
+     */
     private $mailer;
 
     /** @var CallbackModule */
     private $module;
 
+    /**
+     * @var
+     */
     private $adminEmail;
 
+    /**
+     *
+     */
     public function init()
     {
-        $this->view = Yii::app()->controller;
+        parent::init();
+
+        $this->view = Yii::app()->getController();
         $this->mailer = Yii::app()->mail;
         $this->module = Yii::app()->getModule('callback');
         $this->adminEmail = Yii::app()->getModule('yupe')->email;
@@ -22,10 +37,11 @@ class CallbackManager extends CApplicationComponent
     /**
      * Add callback request to DB
      *
-     * @param $data
+     * @param array $data Form data
+     * @param string $referrer Referrer page url
      * @return bool
      */
-    public function add($data)
+    public function add($data, $referrer = null)
     {
         if(!$data) {
             return false;
@@ -33,6 +49,7 @@ class CallbackManager extends CApplicationComponent
 
         $model = new Callback();
         $model->setAttributes($data);
+        $model->url = $referrer;
 
         if($model->save()) {
             $this->sendNotification($model);

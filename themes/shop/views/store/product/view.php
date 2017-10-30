@@ -2,7 +2,7 @@
 
 /* @var $product Product */
 
-$this->pageTitle = $product->getMetaTitle();
+$this->title = $product->getMetaTitle();
 $this->description = $product->getMetaDescription();
 $this->keywords = $product->getMetaKeywords();
 $this->canonical = $product->getMetaCanonical();
@@ -122,9 +122,11 @@ $this->breadcrumbs = array_merge(
                                 </span>
                             </div>
                             <div class="entry__cart-button">
+                                <?php if(!Yii::app()->cart->itemAt($product->id)):?>
                                 <button class="btn btn_cart" id="add-product-to-cart"
                                         data-loading-text="<?= Yii::t("StoreModule.store", "Adding"); ?>">В корзину
                                 </button>
+                                <?php endif;?>
                             </div>
                         </div>
                         <div class="entry__subtotal">

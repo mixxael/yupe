@@ -48,16 +48,21 @@ class Type extends \yupe\models\YModel
     public function relations()
     {
         return [
-            'attributeRelation' => [self::HAS_MANY, 'TypeAttribute', 'type_id'],
+            'attributeRelation' => [
+                self::HAS_MANY,
+                'TypeAttribute',
+                'type_id'
+            ],
             'typeAttributes' => [
                 self::HAS_MANY,
                 'Attribute',
                 ['attribute_id' => 'id'],
                 'through' => 'attributeRelation',
-                'with' => 'group',
-                'order' => 'group.position ASC',
+                'with' => ['group'],
+                'order' => 'group.position ASC, typeAttributes.sort ASC',
             ],
             'productCount' => [self::STAT, 'Product', 'type_id'],
+            'products' => [self::HAS_MANY, 'Product', 'type_id']
         ];
     }
 
@@ -134,14 +139,6 @@ class Type extends \yupe\models\YModel
     /**
      * @return array
      */
-    public function getFormattedList()
-    {
-        return CHtml::listData(Type::model()->findAll(), 'id', 'name');
-    }
-
-    /**
-     * @return array
-     */
     public function getAttributeGroups()
     {
         $attributeGroups = [];
@@ -153,7 +150,7 @@ class Type extends \yupe\models\YModel
                 $attributeGroups[Yii::t('StoreModule.store', 'Without a group')][] = $attribute;
             }
         }
-
+        
         return $attributeGroups;
     }
 }

@@ -17,7 +17,7 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
         return CMap::mergeArray(
             parent::filters(),
             [
-                'postOnly + delete, addImages',
+                'postOnly + delete, addImages, sortable',
             ]
         );
     }
@@ -30,10 +30,10 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
             ['allow', 'actions' => ['view'], 'roles' => ['Gallery.GalleryBackend.View']],
             ['allow', 'actions' => ['images'], 'roles' => ['Gallery.GalleryBackend.Images']],
             ['allow', 'actions' => ['create'], 'roles' => ['Gallery.GalleryBackend.Create']],
-            ['allow', 'actions' => ['addimages'], 'roles' => ['Gallery.GalleryBackend.Addimages']],
+            ['allow', 'actions' => ['addimages', 'sortable'], 'roles' => ['Gallery.GalleryBackend.Addimages']],
             ['allow', 'actions' => ['update', 'inline'], 'roles' => ['Gallery.GalleryBackend.Update']],
-            ['allow', 'actions' => ['delete', 'multiaction'], 'roles' => ['Gallery.GalleryBackend.Delete']],
-            ['allow', 'actions' => ['deleteImage'], 'roles' => ['Gallery.GalleryBackend.DeleteImage']],
+            ['allow', 'actions' => ['delete', 'multiaction', 'sortable'], 'roles' => ['Gallery.GalleryBackend.Delete']],
+            ['allow', 'actions' => ['deleteImage', 'sortable'], 'roles' => ['Gallery.GalleryBackend.DeleteImage']],
             ['deny']
         ];
     }
@@ -42,10 +42,14 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
     {
         return [
             'inline' => [
-                'class'           => 'yupe\components\actions\YInLineEditAction',
-                'model'           => 'Gallery',
+                'class' => 'yupe\components\actions\YInLineEditAction',
+                'model' => 'Gallery',
                 'validAttributes' => ['name', 'description', 'status']
-            ]
+            ],
+            'sortable' => [
+                'class' => 'yupe\components\actions\SortAction',
+                'model' => 'ImageToGallery',
+            ],
         ];
     }
 
@@ -195,24 +199,21 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
             $this->_addImage($image, $imageData, $gallery);
         }
 
-        $dataProvider = new CActiveDataProvider(
-            'ImageToGallery', [
-                'criteria' => [
-                    'condition' => 't.gallery_id = :gallery_id',
-                    'params'    => [':gallery_id' => $gallery->id],
-                    'order'     => 'image.sort',
-                    'with'      => 'image',
-                ],
-            ]
-        );
+        $criteria = new CDbCriteria();
+        $criteria->condition = 't.gallery_id = :gallery_id';
+        $criteria->order = 't.position';
+        $criteria->with = 'image';
+        $criteria->params = [
+            ':gallery_id' => $gallery->id
+        ];
 
         $this->render(
             'images',
             [
-                'dataProvider' => $dataProvider,
-                'image'        => $image,
-                'model'        => $gallery,
-                'tab'          => !($errors = $image->getErrors())
+                'dataProvider' => ImageToGallery::model()->findAll($criteria),
+                'image' => $image,
+                'model' => $gallery,
+                'tab' => !($errors = $image->getErrors())
                     ? '_images_show'
                     : '_image_add'
             ]
@@ -280,7 +281,7 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
             'GalleryModule.gallery',
             'Image #{id} {result} deleted',
             [
-                '{id}'     => $id,
+                '{id}' => $id,
                 '{result}' => ($result = $image->delete())
                     ? Yii::t('GalleryModule.gallery', 'success')
                     : Yii::t('GalleryModule.gallery', 'not')
@@ -328,23 +329,23 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
                 $data[] = ['error' => $image->getErrors()];
             } else {
                 $data[] = [
-                    'name'          => $image->name,
-                    'type'          => $_FILES['Image']['type']['file'],
-                    'size'          => $_FILES['Image']['size']['file'],
-                    'url'           => $image->getImageUrl(),
+                    'name' => $image->name,
+                    'type' => $_FILES['Image']['type']['file'],
+                    'size' => $_FILES['Image']['size']['file'],
+                    'url' => $image->getImageUrl(),
                     'thumbnail_url' => $image->getImageUrl(80, 80),
-                    'delete_url'    => $this->createUrl(
+                    'delete_url' => $this->createUrl(
                         '/gallery/galleryBackend/deleteImage',
                         [
-                            'id'     => $image->id,
+                            'id' => $image->id,
                             'method' => 'uploader'
                         ]
                     ),
-                    'delete_type'   => 'GET'
+                    'delete_type' => 'GET'
                 ];
             }
 
-           Yii::app()->ajax->raw($data);
+            Yii::app()->ajax->raw($data);
         } else {
             throw new CHttpException(
                 404,
@@ -374,6 +375,25 @@ class GalleryBackendController extends yupe\components\controllers\BackControlle
             [
                 'model' => $gallery,
             ]
+        );
+    }
+
+    public function actionSetPreview($galleryId = null, $imageId = null)
+    {
+        $gallery = $this->loadModel($galleryId);
+
+        if ($gallery->preview_id == $imageId) {
+            $gallery->preview_id = null;
+        } else {
+            $gallery->preview_id = $imageId;
+        }
+
+        $gallery->update();
+
+        $this->redirect(
+            Yii::app()->getRequest()->urlReferer(
+                $this->createAbsoluteUrl('gallery/default/images')
+            )
         );
     }
 

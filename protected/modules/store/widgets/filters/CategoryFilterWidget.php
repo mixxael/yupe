@@ -11,10 +11,22 @@ class CategoryFilterWidget extends \yupe\widgets\YWidget
     public $view = 'category-filter';
 
     /**
+     * @var
+     */
+    public $category;
+
+    /**
      * @throws CException
      */
     public function run()
     {
-        $this->render($this->view, ['categories' => StoreCategory::model()->roots()->published()->cache($this->cacheTime)->findAll(['order' => 'sort'])]);
+        $categories = $this->category ? $this->category->child() : StoreCategory::model()->roots();
+
+        $this->render($this->view, [
+            'categories' => $categories->published()->findAll([
+                'order' => 'sort',
+                'limit' => $this->limit,
+            ]),
+        ]);
     }
 } 

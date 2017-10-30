@@ -14,8 +14,8 @@
  * @property string $create_time
  *
  * The followings are the available model relations:
- * @property StoreAttribute $attribute
- * @property StoreProduct $product
+ * @property Attribute $attribute
+ * @property Product $product
  */
 class AttributeValue extends yupe\models\YModel
 {
@@ -37,15 +37,13 @@ class AttributeValue extends yupe\models\YModel
      */
     public function rules()
     {
-        // NOTE: you should only define rules for those attributes that
-        // will receive user inputs.
-        return array(
-            array('product_id, attribute_id', 'required'),
-            array('product_id, attribute_id, option_value', 'numerical', 'integerOnly' => true),
-            array('number_value', 'numerical'),
-            array('string_value', 'length', 'max' => 250),
-            array('text_value', 'safe'),
-        );
+        return [
+            ['product_id, attribute_id', 'required'],
+            ['product_id, attribute_id, option_value', 'numerical', 'integerOnly' => true],
+            ['number_value', 'numerical'],
+            ['string_value', 'length', 'max' => 250],
+            ['text_value', 'safe'],
+        ];
     }
 
     /**
@@ -53,10 +51,10 @@ class AttributeValue extends yupe\models\YModel
      */
     public function relations()
     {
-        return array(
-            'attribute' => array(self::BELONGS_TO, 'Attribute', 'attribute_id'),
-            'product' => array(self::BELONGS_TO, 'Product', 'product_id'),
-        );
+        return [
+            'attribute' => [self::BELONGS_TO, 'Attribute', 'attribute_id'],
+            'product' => [self::BELONGS_TO, 'Product', 'product_id'],
+        ];
     }
 
     /**
@@ -64,7 +62,7 @@ class AttributeValue extends yupe\models\YModel
      */
     public function attributeLabels()
     {
-        return array(
+        return [
             'id' => 'ID',
             'product_id' => 'Product',
             'attribute_id' => 'Attribute',
@@ -73,7 +71,7 @@ class AttributeValue extends yupe\models\YModel
             'text_value' => 'Text Value',
             'option_value' => 'Option value',
             'create_time' => 'Create time',
-        );
+        ];
     }
 
     /**
@@ -90,8 +88,6 @@ class AttributeValue extends yupe\models\YModel
      */
     public function search()
     {
-        // @todo Please modify the following code to remove attributes that should not be searched.
-
         $criteria = new CDbCriteria;
 
         $criteria->compare('id', $this->id);
@@ -101,9 +97,9 @@ class AttributeValue extends yupe\models\YModel
         $criteria->compare('str_value', $this->str_value, true);
         $criteria->compare('text_value', $this->text_value, true);
 
-        return new CActiveDataProvider($this, array(
+        return new CActiveDataProvider($this, [
             'criteria' => $criteria,
-        ));
+        ]);
     }
 
     /**
@@ -138,11 +134,14 @@ class AttributeValue extends yupe\models\YModel
             case Attribute::TYPE_DROPDOWN:
                 $this->option_value = empty($value) ? null : (int)$value;
                 break;
+            case Attribute::TYPE_CHECKBOX_LIST:
+                $this->option_value = empty($value) ? null : (int)$value;
+                break;
             case Attribute::TYPE_CHECKBOX:
                 $this->number_value = empty($value) ? 0 : 1;
                 break;
             case Attribute::TYPE_NUMBER:
-                $this->number_value = empty($value) ? null : (float)$value;
+                $this->number_value = $value === '' ? null : (float)$value;
                 break;
             case Attribute::TYPE_TEXT:
                 $this->text_value = $value;
@@ -168,20 +167,19 @@ class AttributeValue extends yupe\models\YModel
     {
         switch ($this->attribute->type) {
             case Attribute::TYPE_DROPDOWN:
-                return (int)$this->option_value;
-                break;
+                return is_null($this->option_value) ? null : (int)$this->option_value;
+            case Attribute::TYPE_CHECKBOX_LIST:
+                return is_null($this->option_value) ? null : (int)$this->option_value;
             case Attribute::TYPE_CHECKBOX:
                 return (bool)$this->number_value;
-                break;
             case Attribute::TYPE_NUMBER:
-                return (float)$this->number_value;
-                break;
+                return is_null($this->number_value) ? null : (float)$this->number_value;
             case Attribute::TYPE_TEXT:
                 return $this->text_value;
-                break;
             case Attribute::TYPE_SHORT_TEXT:
                 return $this->string_value;
-                break;
+            case Attribute::TYPE_FILE:
+                return $this->string_value;
             default:
                 return $default;
         }
@@ -202,8 +200,37 @@ class AttributeValue extends yupe\models\YModel
             Attribute::TYPE_NUMBER => 'number_value',
             Attribute::TYPE_TEXT => 'text_value',
             Attribute::TYPE_SHORT_TEXT => 'string_value',
+            Attribute::TYPE_CHECKBOX_LIST => 'option_value'
         ];
 
         return array_key_exists($type, $map) ? $map[$type] : 'string_value';
+    }
+
+    /**
+     * @return array
+     */
+    public function behaviors()
+    {
+        return [
+            'file-upload' => [
+                'class' => 'yupe\components\behaviors\FileUploadBehavior',
+                'attributeName' => 'string_value',
+                'uploadPath' => Yii::app()->getModule('store')->uploadPath.'/product',
+            ],
+        ];
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getFilePath()
+    {
+        if (!$this->attribute->isType(Attribute::TYPE_FILE)) {
+            return null;
+        }
+
+        $file = Yii::app()->getBasePath().'/'.Yii::app()->getModule('yupe')->uploadPath.'/'.Yii::app()->getModule('store')->uploadPath.'/product/'.$this->value();
+
+        return \yupe\helpers\YFile::rmFile($file);
     }
 }

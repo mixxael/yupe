@@ -79,7 +79,7 @@ $this->menu = [
 
 <div id="search-toggle" class="collapse out search-form">
     <?php
-    Yii::app()->clientScript->registerScript(
+    Yii::app()->getClientScript()->registerScript(
         'search',
         "
     $('.search-form form').submit(function () {
@@ -102,6 +102,15 @@ $this->menu = [
         'filter'       => $model,
         'columns'      => [
             [
+                'name' => 'icon',
+                'header' => false,
+                'type' => 'raw',
+                'value' => function($data){
+                    return CHtml::image($data->getImageUrl(64, 64), $data->title, array("width"  => 64, "height" => 64));
+                },
+                'filter' => false,
+            ],
+            [
                 'class'    => 'bootstrap.widgets.TbEditableColumn',
                 'editable' => [
                     'url'    => $this->createUrl('/blog/postBackend/inline'),
@@ -114,7 +123,7 @@ $this->menu = [
                     ),
                     'source' => CHtml::listData(Blog::model()->findAll(), 'id', 'name'),
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
                 'name'     => 'blog_id',
@@ -133,7 +142,7 @@ $this->menu = [
                     'url'    => $this->createUrl('/blog/postBackend/inline'),
                     'mode'   => 'inline',
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
                 'filter'   => CHtml::activeTextField($model, 'title', ['class' => 'form-control']),
@@ -145,7 +154,7 @@ $this->menu = [
                     'url'    => $this->createUrl('/blog/postBackend/inline'),
                     'mode'   => 'inline',
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
                 'filter'   => CHtml::activeTextField($model, 'slug', ['class' => 'form-control']),
@@ -155,7 +164,6 @@ $this->menu = [
                 'name'     => 'publish_time',
                 'editable' => [
                     'url'        => $this->createUrl('/blog/postBackend/inline'),
-                    //'mode' => 'inline',
                     'type'       => 'datetime',
                     'options'    => [
                         'datetimepicker' => [
@@ -169,16 +177,20 @@ $this->menu = [
                     ],
                     'viewformat' => 'dd-mm-yyyy hh:ii',
                     'params'     => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
-                'value'    => '$data->publish_time',
+                'value'    => function($data){
+                    return $data->publish_time;
+                },
                 'filter'   => CHtml::activeTextField($model, 'publish_time', ['class' => 'form-control']),
             ],
             [
                 'name'   => 'create_user_id',
                 'type'   => 'raw',
-                'value'  => 'CHtml::link($data->createUser->getFullName(), array("/user/userBackend/view", "id" => $data->createUser->id))',
+                'value'  => function($data){
+                    return CHtml::link($data->createUser->getFullName(), array("/user/userBackend/view", "id" => $data->createUser->id));
+                },
                 'filter' => CHtml::activeDropDownList(
                     $model,
                     'create_user_id',
@@ -199,37 +211,20 @@ $this->menu = [
                     ),
                     'source' => array_merge(['' => '---'], $model->getCommentStatusList()),
                     'params' => [
-                        Yii::app()->request->csrfTokenName => Yii::app()->request->csrfToken
+                        Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
                 'name'     => 'comment_status',
                 'type'     => 'raw',
-                'value'    => '$data->getCommentStatus()',
+                'value'    => function($data){
+                    return $data->getCommentStatus();
+                },
                 'filter'   => CHtml::activeDropDownList(
                     $model,
                     'comment_status',
                     $model->getCommentStatusList(),
                     ['class' => 'form-control', 'empty' => '']
                 ),
-            ],
-            [
-                'class'    => 'bootstrap.widgets.TbEditableColumn',
-                'editable' => [
-                    'url'     => $this->createUrl('/blog/postBackend/inline'),
-                    'mode'    => 'inline',
-                    'type'    => 'select2',
-                    'select2' => [
-                        'tags' => array_values(CHtml::listData(Tag::model()->findAll(), 'id', 'name')),
-                    ],
-                ],
-                'name'     => 'tags',
-                'value'    => 'join(", ", $data->getTags())',
-                'filter'   => false,
-            ],
-            [
-                'header' => "<i class=\"fa fa-comment\"></i>",
-                'value'  => 'CHtml::link(($data->commentsCount>0) ? $data->commentsCount-1 : 0,array("/comment/commentBackend/index/","Comment[model]" => "Post","Comment[model_id]" => $data->id))',
-                'type'   => 'raw',
             ],
             [
                 'class'   => 'yupe\widgets\EditableStatusColumn',
@@ -242,6 +237,20 @@ $this->menu = [
                     Post::STATUS_DRAFT     => ['class' => 'label-default'],
                     Post::STATUS_MODERATED => ['class' => 'label-warning'],
                 ],
+            ],
+            [
+                'name'     => 'tags',
+                'value'    => function($data){
+                    return implode(", ", $data->getTags());
+                },
+                'filter'   => false,
+            ],
+            [
+                'header' => "<i class=\"fa fa-comment\"></i>",
+                'value'  => function($data){
+                    return CHtml::link(($data->commentsCount>0) ? $data->commentsCount-1 : 0,array("/comment/commentBackend/index/","Comment[model]" => "Post","Comment[model_id]" => $data->id));
+                },
+                'type'   => 'raw',
             ],
             [
                 'class' => 'yupe\widgets\CustomButtonColumn',

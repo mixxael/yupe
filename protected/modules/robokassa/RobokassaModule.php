@@ -10,7 +10,7 @@ class RobokassaModule extends WebModule
     /**
      *
      */
-    const VERSION = '0.9.9';
+    const VERSION = '1.0';
 
     /**
      * @return array
@@ -106,13 +106,5 @@ class RobokassaModule extends WebModule
     public function getIcon()
     {
         return 'fa fa-rub';
-    }
-
-    /**
-     *
-     */
-    public function init()
-    {
-        parent::init();
     }
 }

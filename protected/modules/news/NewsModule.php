@@ -21,7 +21,7 @@ class NewsModule extends WebModule
     /**
      *
      */
-    const VERSION = '1.0';
+    const VERSION = '1.1';
 
     /**
      * @var string
@@ -69,7 +69,7 @@ class NewsModule extends WebModule
     public function getInstall()
     {
         if (parent::getInstall()) {
-            @mkdir(Yii::app()->uploadManager->getBasePath().DIRECTORY_SEPARATOR.$this->uploadPath, 0755);
+            @mkdir(Yii::app()->uploadManager->getBasePath() . DIRECTORY_SEPARATOR . $this->uploadPath, 0755);
         }
 
         return false;
@@ -82,7 +82,7 @@ class NewsModule extends WebModule
     {
         $messages = [];
 
-        $uploadPath = Yii::app()->uploadManager->getBasePath().DIRECTORY_SEPARATOR.$this->uploadPath;
+        $uploadPath = Yii::app()->uploadManager->getBasePath() . DIRECTORY_SEPARATOR . $this->uploadPath;
 
         if (!is_writable($uploadPath)) {
             $messages[WebModule::CHECK_ERROR][] = [
@@ -119,7 +119,7 @@ class NewsModule extends WebModule
                 'NewsModule.news',
                 'Uploading files catalog (relatively {path})',
                 [
-                    '{path}' => Yii::getPathOfAlias('webroot').DIRECTORY_SEPARATOR.Yii::app()->getModule(
+                    '{path}' => Yii::getPathOfAlias('webroot') . DIRECTORY_SEPARATOR . Yii::app()->getModule(
                             "yupe"
                         )->uploadPath,
                 ]
@@ -280,7 +280,11 @@ class NewsModule extends WebModule
             [
                 'icon' => 'fa fa-fw fa-folder-open',
                 'label' => Yii::t('NewsModule.news', 'News categories'),
-                'url' => ['/category/categoryBackend/index', 'Category[parent_id]' => (int)$this->mainCategory],
+                'url' => [
+                    '/category/categoryBackend/index',
+                    'module' => $this->getId(),
+                    'parent' => $this->mainCategory ?: null
+                ],
             ],
         ];
     }

@@ -26,15 +26,6 @@ class YQueueMail extends yupe\components\Mail
      * @var
      */
     private $_queue;
-
-    /**
-     *
-     */
-    public function init()
-    {
-        parent::init();
-    }
-
     /**
      * @return mixed
      * @throws Exception
@@ -65,7 +56,7 @@ class YQueueMail extends yupe\components\Mail
      * @return mixed
      * @throws Exception
      */
-    public function send($from, $to, $theme, $body, $isText = false)
+    public function send($from, $to, $theme, $body, $isText = false, $replyTo = [])
     {
         return $this->getQueueComponent()->add(
             $this->queueMailWorkerId,
@@ -74,6 +65,7 @@ class YQueueMail extends yupe\components\Mail
                 'to' => $to,
                 'theme' => $theme,
                 'body' => $body,
+                'replyTo' => $replyTo
             ]
         );
     }

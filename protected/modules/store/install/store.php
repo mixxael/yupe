@@ -20,6 +20,9 @@ return [
                 'category.after.save' => [
                     ['\StoreCategoryListener', 'onAfterSave']
                 ],
+                'category.after.delete' => [
+                    ['\StoreCategoryListener', 'onAfterDelete']
+                ],
             ]
         ],
         'money' => [
@@ -27,6 +30,9 @@ return [
         ],
         'productRepository' => [
             'class' => 'application.modules.store.components.repository.ProductRepository'
+        ],
+        'producerRepository' => [
+            'class' => 'application.modules.store.components.repository.ProducerRepository'
         ],
         'categoryRepository' => [
             'class' => 'application.modules.store.components.repository.StoreCategoryRepository'

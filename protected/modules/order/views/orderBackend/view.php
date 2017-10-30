@@ -87,7 +87,7 @@ $this->menu = [
                     'date',
                     [
                         'name' => 'status_id',
-                        'value' => $model->status->getTitle(),
+                        'value' => CHtml::encode($model->getStatusTitle()),
                     ],
                     [
                         'name' => 'total_price',
@@ -100,6 +100,13 @@ $this->menu = [
                     ],
                     'discount',
                     'coupon_discount',
+                    [
+                        'name' => 'manager_id',
+                        'type' => 'raw',
+                        'value' => function(Order $model){
+                            return isset($model->manager) ? $model->manager->getFullName() : null;
+                        },
+                    ],
                     [
                         'name' => 'user_id',
                         'type' => 'raw',
@@ -151,6 +158,7 @@ $this->menu = [
                     'city',
                     'street',
                     'house',
+                    'apartment'
                 ],
             ]
         ); ?>
@@ -187,7 +195,7 @@ $this->menu = [
                     [
                         'type' => 'raw',
                         'value' => function ($data) {
-                            return CHtml::image($data->product->getImageUrl(40, 40), "", ["class" => "img-thumbnail"]);
+                            return $data->product ? CHtml::image($data->product->getImageUrl(40, 40), "", ["class" => "img-thumbnail"]) : null;
                         },
                     ],
                     [

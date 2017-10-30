@@ -19,7 +19,11 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
                 'actions' => ['update', 'sortable', 'inlineEditGroup', 'groupCreate'],
                 'roles' => ['Store.AttributeBackend.Update'],
             ],
-            ['allow', 'actions' => ['delete', 'multiaction'], 'roles' => ['Store.AttributeBackend.Delete'],],
+            [
+                'allow',
+                'actions' => ['delete', 'multiaction', 'deleteFile'],
+                'roles' => ['Store.AttributeBackend.Delete'],
+            ],
             ['deny',],
         ];
     }
@@ -35,6 +39,16 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
                 'model' => 'AttributeGroup',
                 'validAttributes' => ['name'],
             ],
+            'inline' => [
+                'class' => 'yupe\components\actions\YInLineEditAction',
+                'model' => 'AttributeOption',
+                'validAttributes' => ['value'],
+            ],
+            'inlineattr' => [
+                'class' => 'yupe\components\actions\YInLineEditAction',
+                'model' => 'Attribute',
+                'validAttributes' => ['required', 'is_filter'],
+            ],
             'sortable' => [
                 'class' => 'yupe\components\actions\SortAction',
                 'model' => 'AttributeGroup',
@@ -44,7 +58,34 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
                 'model' => 'Attribute',
                 'attribute' => 'sort',
             ],
+            'sortoptions' => [
+                'class' => 'yupe\components\actions\SortAction',
+                'model' => 'AttributeOption',
+            ],
         ];
+    }
+
+    public function actionDeleteFile()
+    {
+        if (!Yii::app()->getRequest()->getIsPostRequest()) {
+            throw new CHttpException();
+        }
+
+        $product = (int)Yii::app()->getRequest()->getPost('product');
+        $attribute = (int)Yii::app()->getRequest()->getPost('attribute');
+
+        $model = AttributeValue::model()->find('product_id = :product AND attribute_id = :attribute', [
+            ':product' => $product,
+            ':attribute' => $attribute,
+        ]);
+
+        if (null === $model || null === $model->getFilePath()) {
+            Yii::app()->ajax->success();
+        }
+
+        $model->delete();
+
+        Yii::app()->ajax->success();
     }
 
 
@@ -62,8 +103,10 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
 
             $model->setAttributes($data);
 
-            if ($model->save()) {
-                Yii::app()->user->setFlash(
+            if ($model->save() && $model->setTypes(Yii::app()->getRequest()->getPost('types',
+                    [])) && $model->setMultipleValuesAttributes(explode(PHP_EOL, $model->rawOptions))
+            ) {
+                Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('StoreModule.store', 'Attribute created')
                 );
@@ -77,7 +120,10 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
             }
         }
 
-        $this->render('create', ['model' => $model]);
+        $this->render('create', [
+            'model' => $model,
+            'types' => Type::model()->findAll(),
+        ]);
     }
 
 
@@ -90,12 +136,16 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
         $model = $this->loadModel($id);
 
         if (($data = Yii::app()->getRequest()->getPost('Attribute')) !== null) {
+
             $currentType = $model->type;
+
             $model->setAttributes(Yii::app()->getRequest()->getPost('Attribute'));
 
-            if ($model->save() && $model->changeType($currentType, $model->type)) {
+            if ($model->save() && $model->changeType($currentType,
+                    $model->type) && $model->setTypes(Yii::app()->getRequest()->getPost('types', []))
+            ) {
 
-                Yii::app()->user->setFlash(
+                Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('StoreModule.store', 'Attribute updated')
                 );
@@ -116,6 +166,7 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
             'update',
             [
                 'model' => $model,
+                'types' => Type::model()->findAll(),
             ]
         );
     }
@@ -156,6 +207,69 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
 
 
     /**
+     * @param $id
+     * @throws CHttpException
+     */
+    public function actionDeleteOption($id)
+    {
+        if (Yii::app()->getRequest()->getIsPostRequest()) {
+
+            $option = AttributeOption::model()->findByPk($id);
+
+            if (null === $option) {
+                throw new CHttpException(404);
+            }
+
+            $option->delete();
+
+            if (!isset($_GET['ajax'])) {
+                $this->redirect(
+                    (array)Yii::app()->getRequest()->getPost('returnUrl', 'index')
+                );
+            }
+
+        } else {
+            throw new CHttpException(
+                400,
+                Yii::t('StoreModule.store', 'Bad request. Please don\'t use similar requests anymore')
+            );
+        }
+    }
+
+
+    /**
+     * @param $id
+     * @throws CHttpException
+     */
+    public function actionAddOption($id)
+    {
+        if (Yii::app()->getRequest()->getIsPostRequest()) {
+
+            $model = $this->loadModel($id);
+
+            $option = new AttributeOption();
+            $option->setAttributes([
+                'value' => Yii::app()->getRequest()->getPost('value'),
+                'attribute_id' => $model->id
+            ]);
+
+            if (true === $option->save()) {
+                Yii::app()->ajax->success();
+            }
+
+            Yii::app()->ajax->failure();
+
+
+        } else {
+            throw new CHttpException(
+                400,
+                Yii::t('StoreModule.store', 'Bad request. Please don\'t use similar requests anymore')
+            );
+        }
+    }
+
+
+    /**
      *
      */
     public function actionIndex()
@@ -172,7 +286,7 @@ class AttributeBackendController extends yupe\components\controllers\BackControl
 
         $this->render('index', [
             'model' => $model,
-            'attributeGroup' => $attributeGroup
+            'attributeGroup' => $attributeGroup,
         ]);
     }
 

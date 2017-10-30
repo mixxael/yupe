@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @property integer $id
  * @property integer $delivery_id
@@ -29,6 +28,7 @@
  * @property string $street
  * @property string $house
  * @property string $apartment
+ * @property integer $manager_id
  *
  * @property OrderProduct[] $products
  * @property Delivery $delivery
@@ -40,6 +40,7 @@
 Yii::import('application.modules.order.OrderModule');
 Yii::import('application.modules.order.events.OrderEvents');
 Yii::import('application.modules.order.events.PayOrderEvent');
+Yii::import('application.modules.order.events.OrderEvent');
 Yii::import('application.modules.order.events.OrderChangeStatusEvent');
 
 /**
@@ -65,6 +66,9 @@ class Order extends yupe\models\YModel
      */
     const SCENARIO_ADMIN = 'admin';
 
+    /**
+     * @var null
+     */
     public $couponId = null;
 
     /**
@@ -114,14 +118,17 @@ class Order extends yupe\models\YModel
      */
     public function rules()
     {
-        // NOTE: you should only define rules for those attributes that
-        // will receive user inputs.
         return [
+            ['name, email, phone, zipcode, country, city, street, house, apartment', 'filter', 'filter' => 'trim'],
+            ['name, email, phone, zipcode, country, city, street, house, apartment, comment', 'filter', 'filter' => [$obj = new CHtmlPurifier(), 'purify']],
             ['status_id, delivery_id', 'required'],
             ['name, email', 'required', 'on' => self::SCENARIO_USER],
-            ['name, email, phone, zipcode, country, city, street, house, apartment', 'filter', 'filter' => 'trim'],
             ['email', 'email'],
-            ['delivery_id, separate_delivery, payment_method_id, paid, user_id, couponId', 'numerical', 'integerOnly' => true],
+            [
+                'delivery_id, separate_delivery, payment_method_id, paid, user_id, couponId, manager_id',
+                'numerical',
+                'integerOnly' => true,
+            ],
             ['delivery_price, total_price, discount, coupon_discount', 'store\components\validators\NumberValidator'],
             ['name, phone, email, city, street', 'length', 'max' => 255],
             ['comment, note', 'length', 'max' => 1024],
@@ -136,7 +143,7 @@ class Order extends yupe\models\YModel
                 'on' => self::SCENARIO_USER,
             ],
             [
-                'id, delivery_id, delivery_price, payment_method_id, paid, payment_time, payment_details, total_price, discount, coupon_discount, separate_delivery, status_id, date, user_id, name, phone, email, comment, ip, url, note, modified',
+                'id, delivery_id, delivery_price, payment_method_id, paid, payment_time, payment_details, total_price, discount, coupon_discount, separate_delivery, status_id, date, user_id, name, phone, email, comment, ip, url, note, modified, manager_id',
                 'safe',
                 'on' => 'search',
             ],
@@ -154,6 +161,7 @@ class Order extends yupe\models\YModel
             'payment' => [self::BELONGS_TO, 'Payment', 'payment_method_id'],
             'status' => [self::BELONGS_TO, 'OrderStatus', 'status_id'],
             'client' => [self::BELONGS_TO, 'Client', 'user_id'],
+            'manager' => [self::BELONGS_TO, 'User', 'manager_id'],
             'couponsIds' => [self::HAS_MANY, 'OrderCoupon', 'order_id'],
             'coupons' => [self::HAS_MANY, 'Coupon', 'coupon_id', 'through' => 'couponsIds'],
         ];
@@ -221,9 +229,9 @@ class Order extends yupe\models\YModel
             'street' => Yii::t('OrderModule.order', 'Street'),
             'house' => Yii::t('OrderModule.order', 'House'),
             'apartment' => Yii::t('OrderModule.order', 'Apartment'),
+            'manager_id' => Yii::t('OrderModule.order', 'Manager'),
         ];
     }
-
 
     /**
      * @return CActiveDataProvider
@@ -233,7 +241,7 @@ class Order extends yupe\models\YModel
         $criteria = new CDbCriteria;
         $criteria->with = ['delivery', 'payment', 'client', 'status'];
 
-        $criteria->compare('id', $this->id);
+        $criteria->compare('t.id', $this->id);
         $criteria->compare('t.name', $this->name, true);
         $criteria->compare('delivery_id', $this->delivery_id);
         $criteria->compare('delivery_price', $this->delivery_price);
@@ -256,6 +264,7 @@ class Order extends yupe\models\YModel
         $criteria->compare('url', $this->url, true);
         $criteria->compare('note', $this->note, true);
         $criteria->compare('modified', $this->modified, true);
+        $criteria->compare('t.manager_id', $this->manager_id);
 
         if (null !== $this->couponId) {
             $criteria->with['couponsIds'] = ['together' => true];
@@ -394,7 +403,6 @@ class Order extends yupe\models\YModel
         return $cost;
     }
 
-
     /**
      * Фильтрует переданные коды купонов и возвращает объекты купонов
      * @param $codes - массив кодов купонов
@@ -432,15 +440,14 @@ class Order extends yupe\models\YModel
     public function getCouponDiscount(array $coupons)
     {
         $productsTotalPrice = $this->getProductsCost();
-        $delta = 0.00; // суммарная скидка по купонам
-        /* посчитаем скидку */
+        $delta = 0.00;
         if ($this->isCouponsAvailable()) {
             foreach ($coupons as $coupon) {
                 switch ($coupon->type) {
-                    case Coupon::TYPE_SUM:
+                    case CouponType::TYPE_SUM:
                         $delta += $coupon->value;
                         break;
-                    case Coupon::TYPE_PERCENT:
+                    case CouponType::TYPE_PERCENT:
                         $delta += ($coupon->value / 100) * $productsTotalPrice;
                         break;
                 }
@@ -472,6 +479,8 @@ class Order extends yupe\models\YModel
             if (!$this->save()) {
                 return false;
             }
+
+            Yii::app()->eventManager->fire(OrderEvents::SUCCESS_CREATED, new OrderEvent($this));
 
             $transaction->commit();
 
@@ -586,7 +595,6 @@ class Order extends yupe\models\YModel
         return isset($data[$this->paid]) ? $data[$this->paid] : Yii::t("OrderModule.order", '*unknown*');
     }
 
-
     /**
      *
      * Формат массива:
@@ -685,7 +693,6 @@ class Order extends yupe\models\YModel
         parent::afterSave();
     }
 
-
     /**
      * @return float
      */
@@ -725,18 +732,30 @@ class Order extends yupe\models\YModel
     }
 
     /**
+     * @return mixed
+     */
+    public function isPaymentMethodSelected()
+    {
+        return $this->payment_method_id;
+    }
+
+
+    /**
      * @param Payment $payment
+     * @param int $paid
      * @return bool
      */
-    public function pay(Payment $payment)
+    public function pay(Payment $payment, $paid = self::PAID_STATUS_PAID)
     {
         if ($this->isPaid()) {
             return true;
         }
 
-        $this->paid = static::PAID_STATUS_PAID;
-        $this->payment_method_id = $payment->id;
-        $this->payment_time = new CDbExpression('now()');
+        $this->setAttributes([
+            'paid' => (int)$paid,
+            'payment_method_id' => $payment->id,
+            'payment_time' => new CDbExpression('NOW()'),
+        ]);
 
         $result = $this->save();
 
@@ -805,13 +824,38 @@ class Order extends yupe\models\YModel
     {
         return new CActiveDataProvider(
             'OrderProduct', [
-            'criteria' => [
-                'condition' => 'order_id = :id',
-                'params' => [
-                    ':id' => $this->id,
+                'criteria' => [
+                    'condition' => 'order_id = :id',
+                    'params' => [
+                        ':id' => $this->id,
+                    ],
                 ],
-            ],
-        ]
+            ]
         );
+    }
+
+    /**
+     * @return string
+     */
+    public function getStatusTitle()
+    {
+        return isset($this->status) ? $this->status->name : Yii::t('OrderModule.order', '*unknown*');
+    }
+
+    /**
+     * @param IWebUser $user
+     * @return bool
+     */
+    public function checkManager(IWebUser $user)
+    {
+        if (!$this->manager_id) {
+            return true;
+        }
+
+        if (((int)$this->manager_id === (int)$user->getId()) || $user->isSuperUser()) {
+            return true;
+        }
+
+        return false;
     }
 }

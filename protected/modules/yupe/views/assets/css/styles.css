@@ -1,6 +1,11 @@
 /*------------------------------------------------------------------
 [ Shortcuts / .shortcuts ]
 */
+
+.form-control {
+    border-radius: 0px;
+}
+
 .shortcuts {
     text-align: left;
 }
@@ -304,6 +309,7 @@ input.form-control[type="file"] {
 
 .grid-toolbar {
     height: 40px;
+    padding-left: 0px;
 }
 
 /*navbar*/
@@ -473,4 +479,25 @@ input.form-control[type="file"] {
 
 .btn-group .btn {
     margin-left: -1px;
+}
+
+#news-form .ct-form-control {
+    min-width: 100px;
+}
+
+.grid-view .headline {
+    float: right;
+    margin-top: 26px;
+}
+
+.grid-view .grid-toolbar {
+    padding-right: 0;
+}
+
+.grid-view .grid-toolbar button {
+    float: right;
+}
+
+.grid-view .grid-toolbar #copy-products {
+    margin-right: 8px !important;
 }

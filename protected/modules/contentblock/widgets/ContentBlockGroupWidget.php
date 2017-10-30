@@ -12,15 +12,39 @@
 Yii::import('application.modules.contentblock.models.ContentBlock');
 Yii::import('application.modules.contentblock.ContentBlockModule');
 
+/**
+ * Class ContentBlockGroupWidget
+ */
 class ContentBlockGroupWidget extends yupe\widgets\YWidget
 {
+    /**
+     * @var
+     */
     public $category;
+    /**
+     * @var
+     */
     public $limit;
+    /**
+     * @var bool
+     */
     public $silent = true;
+    /**
+     * @var int
+     */
     public $cacheTime = 60;
+    /**
+     * @var bool
+     */
     public $rand = false;
+    /**
+     * @var string
+     */
     public $view = 'contentblockgroup';
 
+    /**
+     * @throws CException
+     */
     public function init()
     {
         if (empty($this->category)) {
@@ -29,14 +53,14 @@ class ContentBlockGroupWidget extends yupe\widgets\YWidget
                 'Insert group content block title for ContentBlockGroupWidget!'
             ));
         } else {
-            $category = Category::model()->findByAttributes(['slug' => $this->category]);
+            $category = Yii::app()->getComponent('categoriesRepository')->getByAlias($this->category);
 
             if (null === $category) {
                 throw new CException(Yii::t(
                     'ContentBlockModule.contentblock',
                     'Category "{category}" does not exist, please enter the unsettled category',
                     [
-                        '{category}' => $this->category
+                        '{category}' => $this->category,
                     ]
                 ));
             }
@@ -46,15 +70,18 @@ class ContentBlockGroupWidget extends yupe\widgets\YWidget
         $this->rand = (int)$this->rand;
     }
 
+    /**
+     * @throws CException
+     */
     public function run()
     {
-        $cacheName = "ContentBlock{$this->category}" . Yii::app()->language;
+        $cacheName = "ContentBlock{$this->category}".Yii::app()->language;
 
-        $blocks = Yii::app()->cache->get($cacheName);
+        $blocks = Yii::app()->getCache()->get($cacheName);
 
         if ($blocks === false) {
 
-            $category = Category::model()->findByAttributes(['slug' => $this->category]);
+            $category = Yii::app()->getComponent('categoriesRepository')->getByAlias($this->category);
 
             $criteria = new CDbCriteria([
                 'scopes' => ['active'],
@@ -78,13 +105,13 @@ class ContentBlockGroupWidget extends yupe\widgets\YWidget
                         'ContentBlockModule.contentblock',
                         'Group content block "{category_id}" was not found !',
                         [
-                            '{category_id}' => $this->category
+                            '{category_id}' => $this->category,
                         ]
                     )
                 );
             }
 
-            Yii::app()->cache->set($cacheName, $blocks, $this->cacheTime);
+            Yii::app()->getCache()->set($cacheName, $blocks, $this->cacheTime);
         }
 
         $this->render($this->view, ['blocks' => $blocks]);

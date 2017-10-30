@@ -1,16 +1,15 @@
 <?php
 namespace application\modules\social\controllers;
 
-use yupe\widgets\YFlashMessages;
 use application\modules\social\components\UserIdentity;
 use application\modules\social\models\SocialUser;
-
-use Yii;
-use EAuthException;
 use CHttpException;
-use User;
-use RegistrationForm;
+use EAuthException;
 use LoginForm;
+use RegistrationForm;
+use User;
+use Yii;
+use yupe\widgets\YFlashMessages;
 
 class UserController extends \yupe\components\controllers\FrontController
 {
@@ -20,7 +19,7 @@ class UserController extends \yupe\components\controllers\FrontController
     {
         return [
             'captcha' => [
-                'class'     => 'yupe\components\actions\YCaptchaAction',
+                'class' => 'yupe\components\actions\YCaptchaAction',
                 'backColor' => 0xFFFFFF,
                 'testLimit' => 1,
                 'minLength' => Yii::app()->getModule('user')->minCaptchaLength,
@@ -65,20 +64,46 @@ class UserController extends \yupe\components\controllers\FrontController
                     $this->redirect(Yii::app()->getUser()->getReturnUrl($redirect));
                 }
 
-                if ($this->service->hasAttribute('email') && Yii::app()->userManager->isUserExist(
-                        $this->service->email
-                    )
+                /* @var $user User */
+                if ($this->service->hasAttribute('email') &&
+                    ($user = Yii::app()->userManager->findUserByEmail($this->service->email))
                 ) {
 
-                    Yii::app()->getUser()->setFlash(
-                        YFlashMessages::INFO_MESSAGE,
-                        Yii::t(
-                            'SocialModule.social',
-                            'Account with this email address already exists!  Please, login if you want to join this social network to your account.'
-                        )
-                    );
+                    if ($user->status == User::STATUS_NOT_ACTIVE) {
+                        Yii::app()->getUser()->setFlash(
+                            YFlashMessages::INFO_MESSAGE,
+                            Yii::t(
+                                'SocialModule.social',
+                                'You need to activate your account. Check your email.'
+                            )
+                        );
 
-                    $this->redirect(['/social/connect', 'service' => $this->service->getServiceName()]);
+                        $this->redirect(['/user/account/login']);
+                    }
+
+                    if ($user->status == User::STATUS_BLOCK) {
+                        Yii::app()->getUser()->setFlash(
+                            YFlashMessages::WARNING_MESSAGE,
+                            Yii::t(
+                                'SocialModule.social',
+                                'You account is blocked.'
+                            )
+                        );
+
+                        $this->redirect(['/user/account/login']);
+                    }
+
+                    if ($user->status == User::STATUS_ACTIVE) {
+                        Yii::app()->getUser()->setFlash(
+                            YFlashMessages::INFO_MESSAGE,
+                            Yii::t(
+                                'SocialModule.social',
+                                'Account with this email address already exists!  Please, login if you want to join this social network to your account.'
+                            )
+                        );
+
+                        $this->redirect(['/social/connect', 'service' => $this->service->getServiceName()]);
+                    }
                 }
 
                 Yii::app()->getUser()->setFlash(
@@ -114,6 +139,10 @@ class UserController extends \yupe\components\controllers\FrontController
 
         $form = new RegistrationForm();
 
+        if (isset($authData['email'])) {
+            $form->email = $authData['email'];
+        }
+
         $form->disableCaptcha = true;
 
         if (Yii::app()->getRequest()->getIsPostRequest() && !empty($_POST['RegistrationForm'])) {
@@ -137,14 +166,13 @@ class UserController extends \yupe\components\controllers\FrontController
 
             $form->setAttributes(
                 [
-                    'password'   => $password,
-                    'cPassword'  => $password,
+                    'password' => $password,
+                    'cPassword' => $password,
                     'verifyCode' => null
                 ]
             );
 
             if ($form->validate()) {
-
                 if ($user = Yii::app()->userManager->createUser($form)) {
 
                     $social = new SocialUser();

@@ -15,9 +15,9 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
      */
     public function init()
     {
-        $this->productRepository = Yii::app()->getComponent('productRepository');
-
         parent::init();
+
+        $this->productRepository = Yii::app()->getComponent('productRepository');
     }
 
     /**
@@ -29,6 +29,7 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
             'inline' => [
                 'class' => 'yupe\components\actions\YInLineEditAction',
                 'model' => 'Product',
+                'validateModel' => false,
                 'validAttributes' => [
                     'status',
                     'in_stock',
@@ -37,11 +38,16 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
                     'sku',
                     'type_id',
                     'quantity',
+                    'producer_id'
                 ],
             ],
             'sortable' => [
                 'class' => 'yupe\components\actions\SortAction',
                 'model' => 'Product',
+            ],
+            'sortrelated' => [
+                'class' => 'yupe\components\actions\SortAction',
+                'model' => 'ProductLink',
             ],
         ];
     }
@@ -109,6 +115,8 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
 
                 $this->updateProductImages($model);
 
+                $this->uploadAttributesFiles($model);
+
                 Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('StoreModule.store', 'Record was created!')
@@ -155,6 +163,8 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
 
                 $this->updateProductImages($model);
 
+                $this->uploadAttributesFiles($model);
+
                 Yii::app()->getUser()->setFlash(
                     yupe\widgets\YFlashMessages::SUCCESS_MESSAGE,
                     Yii::t('StoreModule.store', 'Record was updated!')
@@ -191,9 +201,37 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
     }
 
     /**
+     * @param $model
+     */
+    protected function uploadAttributesFiles($model)
+    {
+        if (!empty($_FILES['Attribute']['name'])) {
+            foreach ($_FILES['Attribute']['name'] as $key => $file) {
+                $value = AttributeValue::model()->find('product_id = :product AND attribute_id = :attribute', [
+                    ':product' => $model->id,
+                    ':attribute' => $key,
+                ]);
+
+                $value = $value ?: new AttributeValue();
+
+                $value->setAttributes([
+                    'product_id' => $model->id,
+                    'attribute_id' => $key,
+                ]);
+
+                $value->addFileInstanceName('Attribute['.$key.'][name]');
+                if (false === $value->save()) {
+                    Yii::app()->getUser()->setFlash(\yupe\widgets\YFlashMessages::ERROR_MESSAGE,
+                        Yii::t('StoreModule.store', 'Error uploading some files...'));
+                }
+            }
+        }
+    }
+
+    /**
      * @param Product $product
      */
-    public function updateProductImages(Product $product)
+    protected function updateProductImages(Product $product)
     {
         if (Yii::app()->getRequest()->getPost('ProductImage')) {
             foreach (Yii::app()->getRequest()->getPost('ProductImage') as $key => $val) {
@@ -203,8 +241,11 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
                     $productImage->product_id = $product->id;
                     $productImage->addFileInstanceName('ProductImage['.$key.'][name]');
                 }
-                $productImage->attributes = $_POST['ProductImage'][$key];
-                $productImage->save();
+                $productImage->setAttributes($_POST['ProductImage'][$key]);
+                if (false === $productImage->save()) {
+                    Yii::app()->getUser()->setFlash(\yupe\widgets\YFlashMessages::ERROR_MESSAGE,
+                        Yii::t('StoreModule.store', 'Error uploading some images...'));
+                }
             }
         }
     }
@@ -220,8 +261,7 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
 
             $model = ProductImage::model()->findByPk($id);
 
-            if (null !== $model) {
-                $model->delete();
+            if (null !== $model && $model->delete()) {
                 Yii::app()->ajax->success();
             }
         }
@@ -238,7 +278,7 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
     public function actionDelete($id)
     {
         if (Yii::app()->getRequest()->getIsPostRequest()) {
-            // поддерживаем удаление только из POST-запроса
+
             $this->loadModel($id)->delete();
 
             Yii::app()->getUser()->setFlash(
@@ -246,7 +286,6 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
                 Yii::t('StoreModule.store', 'Record was removed!')
             );
 
-            // если это AJAX запрос ( кликнули удаление в админском grid view), мы не должны никуда редиректить
             if (!isset($_GET['ajax'])) {
                 $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : ['index']);
             }
@@ -261,7 +300,7 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
     public function actionIndex()
     {
         $model = new Product('search');
-        $model->unsetAttributes(); // clear any default values
+        $model->unsetAttributes();
         if (Yii::app()->getRequest()->getQuery('Product')) {
             $model->setAttributes(
                 Yii::app()->getRequest()->getQuery('Product')
@@ -329,21 +368,28 @@ class ProductBackendController extends yupe\components\controllers\BackControlle
             throw new CHttpException(404);
         }
 
-        $out = [];
+        $types = [];
+
+        $noSupported = [Attribute::TYPE_FILE, Attribute::TYPE_TEXT, Attribute::TYPE_CHECKBOX_LIST];
 
         foreach ($type->typeAttributes as $attr) {
+
+            if (in_array($attr->type, $noSupported)) {
+                continue;
+            }
+
             if ($attr->type == Attribute::TYPE_DROPDOWN) {
-                $out[] = array_merge($attr->attributes, ['options' => $attr->options]);
+                $types[] = array_merge($attr->attributes, ['options' => $attr->options]);
             } else {
                 if (in_array($attr->type, [Attribute::TYPE_CHECKBOX, Attribute::TYPE_SHORT_TEXT])) {
-                    $out[] = array_merge($attr->attributes, ['options' => []]);
+                    $types[] = array_merge($attr->attributes, ['options' => []]);
                 } else {
-                    $out[] = $attr->attributes;
+                    $types[] = $attr->attributes;
                 }
             }
         }
 
-        Yii::app()->ajax->raw($out);
+        Yii::app()->ajax->raw($types);
     }
 
     /**

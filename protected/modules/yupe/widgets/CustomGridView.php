@@ -108,7 +108,7 @@ class CustomGridView extends \TbExtendedGridView
     /**
      * @var string
      */
-    public $template = "{sorter}{summary}{multiaction}\n{items}\n{extendedSummary}\n{pager}<div class='pull-right'>{headline}</div>";
+    public $template = "{sorter}{summary}{multiaction}\n{items}\n{extendedSummary}\n{pager}<div class='headline'>{headline}</div>";
 
     /**
      * @var
@@ -201,7 +201,7 @@ class CustomGridView extends \TbExtendedGridView
      */
     public function renderSorter()
     {
-        if($this->sorter) {
+        if ($this->sorter) {
 
             $columns = ['' => Yii::t('YupeModule.yupe', '--sort by--')];
 
@@ -211,7 +211,7 @@ class CustomGridView extends \TbExtendedGridView
 
             $sorterName = sprintf('sorter-%s', $this->getId());
 
-            Yii::app()->getClientScript()->registerScript($sorterName,<<<JS
+            Yii::app()->getClientScript()->registerScript($sorterName, <<<JS
 
 $('body').on('click', '#{$sorterName}', function(event){
     alert($(this).val());
@@ -222,7 +222,7 @@ $('body').on('click', '#{$sorterName}', function(event){
 });
 
 JS
-);
+            );
 
             return '<div class="pull-left">'.CHtml::dropDownList(
                 $sorterName,
@@ -352,57 +352,17 @@ JS
     }
 
     /**
-     *   Function for rendering Up/Down buttons:
-     *
-     * @param class $data - incomming model instance
-     *
-     * @return UpDownLinks
-     */
-    public function getUpDownButtons($data)
-    {
-        $downUrlImage = '<i class="fa fa-fw fa-arrow-circle-down"></i>';
-
-        $upUrlImage = '<i class="fa fa-fw fa-arrow-circle-up"></i>';
-
-        $urlUp = Yii::app()->getController()->createUrl(
-            "sort",
-            [
-                'model' => $this->_modelName,
-                'id' => $data->id,
-                'sortField' => $this->sortField,
-                'direction' => 'up',
-            ]
-        );
-
-        $urlDown = Yii::app()->getController()->createUrl(
-            "sort",
-            [
-                'model' => $this->_modelName,
-                'id' => $data->id,
-                'sortField' => $this->sortField,
-                'direction' => 'down',
-            ]
-        );
-
-        $options = ['onclick' => 'ajaxSetSort(this, "'.$this->id.'"); return false;',];
-
-        return CHtml::link($upUrlImage, $urlUp, $options).' '.CHtml::link($downUrlImage, $urlDown, $options);
-    }
-
-    /**
      * Обновление размера страницы
      *
      * @return void
      */
     protected function _updatePageSize()
     {
-
-        // имя текущей модели
         $modelName = strtolower($this->_modelName);
 
         // Делаем так, ибо при попытке править Yii::app()->session['modSettings'] - получаем ошибку
         $sessionSettings = Yii::app()->getUser()->getState(\YWebUser::STATE_MOD_SETTINGS, null);
-        $currentPageSize = $this->dataProvider->getPagination()->pageSize;
+        $currentPageSize = $this->dataProvider->getPagination()->getPageSize();
 
         // Если переменная не найдена нужно проверить наличие данных в БД
         if (!isset($sessionSettings[$modelName]['pageSize'])) {
@@ -557,11 +517,10 @@ JS
                     url: url,
                     type: "POST",
                     dataType: "json",
-                    data: "'.Yii::app()->getRequest()->csrfTokenName.'='.Yii::app()->getRequest()->getCsrfToken(
-            ).'&model='.$this->_modelName.'&do=" + action + "&" + queryString,
+                    data: "'.Yii::app()->getRequest()->csrfTokenName.'='.Yii::app()->getRequest()->getCsrfToken().'&model='.$this->_modelName.'&do=" + action + "&" + queryString,
                     success: function (data) {
                         if (data.result) {
-                            $.fn.yiiGridView.update("'.$this->id.'");
+                            jQuery("#'.$this->id.'").yiiGridView("update",{url: document.location.href });
                         } else {
                             alert(data.data);
                         }

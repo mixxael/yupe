@@ -24,6 +24,10 @@ $linkTypes = CHtml::listData(ProductLinkType::model()->findAll(['order' => 'titl
                 'filter' => $linked,
                 'actionsButtons' => false,
                 'bulkActions' => [false],
+                'sortableRows'      => true,
+                'sortableAjaxSave'  => true,
+                'sortableAttribute' => 'position',
+                'sortableAction'    => '/store/productBackend/sortrelated',
                 'ajaxUrl' => ['/store/productBackend/update', 'id' => $product->id],
                 'columns' => [
                     [
@@ -31,7 +35,7 @@ $linkTypes = CHtml::listData(ProductLinkType::model()->findAll(['order' => 'titl
                         'value' => function ($data) {
                             return CHtml::link(
                                 CHtml::image(
-                                    $data->linkedProduct->getImageUrl(40, 40),
+                                    StoreImage::product($data->linkedProduct, 40, 40),
                                     $data->linkedProduct->name,
                                     ["class" => "img-thumbnail"]
                                 ),
@@ -113,7 +117,7 @@ $linkTypes = CHtml::listData(ProductLinkType::model()->findAll(['order' => 'titl
                         'type' => 'raw',
                         'value' => function ($data) {
                             return CHtml::link(
-                                CHtml::image($data->getImageUrl(40, 40), $data->name, ["class" => "img-thumbnail"]),
+                                CHtml::image(StoreImage::product($data, 40, 40), $data->name, ["class" => "img-thumbnail"]),
                                 ["/store/productBackend/update", "id" => $data->id]
                             );
                         },

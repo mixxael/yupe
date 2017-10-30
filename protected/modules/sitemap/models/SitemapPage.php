@@ -43,11 +43,11 @@ class SitemapPage extends yupe\models\YModel
     public function rules()
     {
         return [
-            ['url', 'required'],
+            ['url, priority', 'required'],
             ['url', 'unique'],
             ['url', 'length', 'max' => 250],
             ['changefreq', 'length', 'max' => 20],
-            ['priority', 'numerical'],
+            ['priority', 'numerical', 'max' => 1],
             ['status', 'numerical', 'integerOnly' => true],
             ['id, url, changefreq, priority, status', 'safe', 'on' => 'search'],
         ];
@@ -88,8 +88,8 @@ class SitemapPage extends yupe\models\YModel
         $criteria = new CDbCriteria();
 
         $criteria->compare('id', $this->id);
-        $criteria->compare('module', $this->url, true);
-        $criteria->compare('changefreq', $this->changefreq, true);
+        $criteria->compare('url', $this->url, true);
+        $criteria->compare('changefreq', $this->changefreq);
         $criteria->compare('priority', $this->priority);
         $criteria->compare('status', $this->status);
 

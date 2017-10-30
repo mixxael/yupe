@@ -10,7 +10,7 @@ class NotifyModule extends WebModule
     /**
      *
      */
-    const VERSION = '0.9.9';
+    const VERSION = '1.1';
 
     /**
      * @return array
@@ -18,10 +18,17 @@ class NotifyModule extends WebModule
     public function getDependencies()
     {
         return [
-            'comment',
-            'blog',
             'mail',
+            'user',
         ];
+    }
+
+    /**
+     * @return bool
+     */
+    public function getIsNoDisable()
+    {
+        return true;
     }
 
     /**
@@ -75,7 +82,7 @@ class NotifyModule extends WebModule
      */
     public function getAuthor()
     {
-        return Yii::t('NotifyModule.notify', 'amylabs team');
+        return Yii::t('NotifyModule.notify', 'yupe team');
     }
 
     /**
@@ -83,7 +90,7 @@ class NotifyModule extends WebModule
      */
     public function getAuthorEmail()
     {
-        return Yii::t('NotifyModule.notify', 'hello@amylabs.ru');
+        return Yii::t('NotifyModule.notify', 'support@yupe.ru');
     }
 
     /**
@@ -91,7 +98,7 @@ class NotifyModule extends WebModule
      */
     public function getUrl()
     {
-        return Yii::t('NotifyModule.notify', 'http://amylabs.ru');
+        return Yii::t('NotifyModule.notify', 'http://yupe.ru');
     }
 
     /**

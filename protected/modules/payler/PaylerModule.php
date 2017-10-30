@@ -18,7 +18,7 @@ class PaylerModule extends WebModule
     /**
      *
      */
-    const VERSION = '1.0.1';
+    const VERSION = '1.0';
 
     /**
      * @return array
@@ -122,13 +122,5 @@ class PaylerModule extends WebModule
     public function getIcon()
     {
         return 'fa fa-rub';
-    }
-
-    /**
-     *
-     */
-    public function init()
-    {
-        parent::init();
     }
 }

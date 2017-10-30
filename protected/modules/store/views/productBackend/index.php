@@ -13,7 +13,7 @@ $this->breadcrumbs = [
 
 $this->pageTitle = Yii::t('StoreModule.store', 'Products - manage');
 ?>
-<div class="page-header">
+<div>
     <h1>
         <?= Yii::t('StoreModule.store', 'Products'); ?>
         <small><?= Yii::t('StoreModule.store', 'administration'); ?></small>
@@ -155,7 +155,7 @@ $this->pageTitle = Yii::t('StoreModule.store', 'Products - manage');
                         Yii::app()->getRequest()->csrfTokenName => Yii::app()->getRequest()->csrfToken
                     ]
                 ],
-                'filter' => CHtml::activeTextField($model, 'price', ['class' => 'form-control']),
+                'filter' => CHtml::activeTextField($model, 'quantity', ['class' => 'form-control']),
             ],
             [
                 'class' => 'yupe\widgets\EditableStatusColumn',
@@ -165,13 +165,12 @@ $this->pageTitle = Yii::t('StoreModule.store', 'Products - manage');
                 'options' => [
                     Product::STATUS_ACTIVE => ['class' => 'label-success'],
                     Product::STATUS_NOT_ACTIVE => ['class' => 'label-info'],
-                    Product::STATUS_ZERO => ['class' => 'label-default'],
                 ],
             ],
             [
                 'class' => 'yupe\widgets\CustomButtonColumn',
                 'frontViewButtonUrl' => function($data){
-                    return Yii::app()->createUrl('/store/product/view', ['name' => $data->slug]);
+                    return ProductHelper::getUrl($data);
                 },
                 'buttons' => [
                     'front_view' => [
